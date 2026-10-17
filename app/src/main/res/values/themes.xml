@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme.QwenVoiceInput" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand_500</item>
+    </style>
+</resources>

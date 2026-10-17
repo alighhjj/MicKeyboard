@@ -1,0 +1,65 @@
+<resources>
+    <string name="app_name">Qwen语音输入</string>
+    <string name="app_subtitle">基于 Qwen3-ASR-Realtime 的全局语音输入 · 点击悬浮球即说即填</string>
+
+    <!-- 设置区 -->
+    <string name="section_settings">识别设置</string>
+    <string name="api_key_hint">阿里云百炼 API Key（sk- 开头）</string>
+    <string name="model_label">识别模型</string>
+    <string name="language_label">识别语言</string>
+    <string name="vad_threshold_hint">VAD 阈值（0~1，越低越灵敏，默认 0.2）</string>
+    <string name="vad_silence_hint">静音断句时长（毫秒，默认 800）</string>
+    <string name="auto_insert_label">停止说话后自动填入输入框</string>
+
+    <!-- 激活方式区 -->
+    <string name="section_activation">激活方式</string>
+    <string name="overlay_row">悬浮窗权限</string>
+    <string name="a11y_row">辅助功能（识别结果填入输入框）</string>
+    <string name="notification_row">通知权限</string>
+    <string name="btn_open">开启</string>
+    <string name="btn_start_service">启动悬浮图标</string>
+    <string name="btn_stop_service">停止悬浮图标</string>
+    <string name="usage_hint">使用方法：启动悬浮图标后，切换到任意 App 并点击输入框，再点击屏幕边缘的麦克风悬浮球开始说话；停止说话后（或再次点击悬浮球），识别结果会自动填入输入框。也可以在下拉通知栏的快捷设置里添加「Qwen语音输入」磁贴，一键开关悬浮图标。</string>
+
+    <!-- 测试区 -->
+    <string name="section_test">测试识别</string>
+    <string name="start_recognition">开始识别</string>
+    <string name="stop_recognition">停止识别</string>
+    <string name="insert_to_input">填入当前输入框</string>
+    <string name="test_idle">未开始</string>
+    <string name="test_done">识别完成</string>
+    <string name="test_empty">未识别到内容</string>
+
+    <string name="perm_granted">已开启</string>
+    <string name="perm_missing">未开启</string>
+
+    <!-- 悬浮面板 -->
+    <string name="panel_connecting">连接中…</string>
+    <string name="panel_listening">聆听中，请说话…</string>
+    <string name="panel_finalizing">识别中…</string>
+    <string name="panel_stopped">已停止，点击「完成并填入」</string>
+    <string name="panel_error">识别出错</string>
+    <string name="finish_and_insert">✓ 完成并填入</string>
+    <string name="cancel">取消</string>
+    <string name="retry">重试</string>
+
+    <string name="bubble_desc">语音输入悬浮球</string>
+
+    <!-- 通知 -->
+    <string name="notification_channel_name">语音输入服务</string>
+    <string name="notification_channel_desc">悬浮语音输入的运行状态</string>
+    <string name="notification_idle">悬浮图标已开启，点击开始语音输入</string>
+    <string name="notification_listening">聆听中…</string>
+    <string name="notification_action_stop">停止</string>
+    <string name="tile_label">Qwen语音输入</string>
+
+    <!-- 辅助服务 -->
+    <string name="accessibility_service_label">Qwen语音输入 - 文本填入</string>
+    <string name="accessibility_service_description">用于将语音识别结果快速填入当前获得焦点的文本输入框。开启后，识别完成时会自动把文本插入到你正在输入的位置。</string>
+
+    <!-- 提示 -->
+    <string name="hint_need_api_key">请先在主界面填写 API Key</string>
+    <string name="hint_overlay_failed">无法显示悬浮窗，请检查悬浮窗权限</string>
+    <string name="hint_mic_denied">未获得麦克风权限，无法进行语音识别</string>
+    <string name="copied_to_clipboard">未找到输入框，已复制到剪贴板</string>
+</resources>

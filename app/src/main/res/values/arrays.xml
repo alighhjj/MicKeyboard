@@ -1,0 +1,28 @@
+<resources>
+    <string-array name="models">
+        <item>qwen3-asr-flash-realtime</item>
+        <item>qwen3-asr-flash</item>
+    </string-array>
+    <string-array name="language_labels">
+        <item>中文 (zh)</item>
+        <item>粤语 (yue)</item>
+        <item>英语 (en)</item>
+        <item>日语 (ja)</item>
+        <item>韩语 (ko)</item>
+        <item>法语 (fr)</item>
+        <item>德语 (de)</item>
+        <item>西班牙语 (es)</item>
+        <item>俄语 (ru)</item>
+    </string-array>
+    <string-array name="language_codes">
+        <item>zh</item>
+        <item>yue</item>
+        <item>en</item>
+        <item>ja</item>
+        <item>ko</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>es</item>
+        <item>ru</item>
+    </string-array>
+</resources>
