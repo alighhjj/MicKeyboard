@@ -133,7 +133,7 @@ qwen-voice-input/
 
 ## 关键实现说明
 
-- **流式直接输入**（默认模式）：`StreamTextWriter` 在会话开始时记录输入框已有文本与光标位置作为基准，每次增量到达时写入「基准前半 + 实时增量 + 基准后半」并用 `ACTION_SET_SELECTION` 保持光标位于增量末尾；每句 `completed` 确认后将基准前移、清空暂存，实现"边说边出字"且不覆盖用户已有内容
+- **流式直接输入**（默认模式）：`StreamTextWriter` 在会话开始时记录输入框已有文本与光标位置作为基准，每次增量到达时写入「基准前半 + 实时增量 + 基准后半」并用 `ACTION_SET_SELECTION` 保持光标位于增量末尾；每句 `completed` 确认后将基准前移、清空暂存，实现"边说边出字"且不覆盖用户已有内容。读取基准时通过 `isShowingHintText()` 过滤占位提示（hint），避免空输入框的提示文本被拼接到识别结果前
 - **一次性填入**（面板模式）：`findFocus(FOCUS_INPUT)` 定位当前焦点可编辑节点，按优先级尝试 `ACTION_PASTE`（保留光标位置）→ 游标合并 `ACTION_SET_TEXT` → 末尾追加，三级回退保证兼容性
 - **会话结束**：VAD 模式下严格遵循「先 `session.finish` → 等 `session.finished` → 再断开」，避免最后一句丢失
 - **前台服务**：`foregroundServiceType="microphone"`（Android 14+ 要求 `FOREGROUND_SERVICE_MICROPHONE` 权限），仅聆听时占用麦克风

@@ -103,13 +103,26 @@ class TextInsertionAccessibilityService : AccessibilityService() {
             return true
         }
         // 3) 追加到末尾
-        val existing = node.text?.toString() ?: ""
+        val existing = realTextOf(node)
         if (setText(node, existing + text)) {
             runOnMain { toast("已填入输入框") }
             return true
         }
         runOnMain { toast("填入失败，已复制到剪贴板") }
         return false
+    }
+
+    /**
+     * 获取输入框的真实文本。
+     * 注意：Android TextView 在文本为空时会把 hint（占位提示）作为 accessibility
+     * node 的 text 返回（isShowingHintText=true），直接拼接会把提示文本写进输入框。
+     */
+    private fun realTextOf(node: AccessibilityNodeInfo): String {
+        val text = node.text?.toString() ?: return ""
+        if (try { node.isShowingHintText() } catch (_: Exception) { false }) return ""
+        val hint = try { node.hintText?.toString() } catch (_: Exception) { null }
+        if (!hint.isNullOrEmpty() && text == hint) return ""
+        return text
     }
 
     /**
@@ -128,7 +141,7 @@ class TextInsertionAccessibilityService : AccessibilityService() {
         /** 锁定当前焦点输入框；@return false 表示没有可用的输入框 */
         fun start(): Boolean {
             val node = findFocusedEditable() ?: return false
-            val current = node.text?.toString() ?: ""
+            val current = realTextOf(node)
             baseText = current
             val sel = node.textSelectionStart
             baseSel = if (sel in 0..current.length) sel else current.length
@@ -206,7 +219,7 @@ class TextInsertionAccessibilityService : AccessibilityService() {
     }
 
     private fun mergeAtCursor(node: AccessibilityNodeInfo, text: String): String? {
-        val current = node.text?.toString() ?: return null
+        val current = realTextOf(node)
         val selStart = try {
             node.textSelectionStart
         } catch (_: Exception) {
