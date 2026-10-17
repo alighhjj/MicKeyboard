@@ -73,7 +73,7 @@ jobs:
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: qwen-voice-input-apk-${{ github.sha }}
+          name: mickeyboard-apk-${{ github.sha }}
           path: dist/*.apk
           if-no-files-found: error
 
@@ -126,9 +126,9 @@ jobs:
           for f in app/build/outputs/apk/release/*.apk; do
             name="$(basename "$f")"
             if [[ "$name" == app-release.apk ]]; then
-              cp "$f" "dist/QwenVoiceInput-${VERSION}.apk"
+              cp "$f" "dist/MicKeyboard-${VERSION}.apk"
             else
-              cp "$f" "dist/QwenVoiceInput-${VERSION}-${name}"
+              cp "$f" "dist/MicKeyboard-${VERSION}-${name}"
             fi
           done
           ls -lh dist/
