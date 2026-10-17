@@ -51,9 +51,28 @@ class AsrController(
     }
     private var connectTimeoutJob: Job? = null
     private var finishTimeoutJob: Job? = null
+    private var idleTimeoutJob: Job? = null
     private var pendingResult: ((String) -> Unit)? = null
 
     private val isCjk: Boolean = config.language in setOf("zh", "yue", "ja")
+
+    /** 重置「无语音自动停止」计时：防止用户忘记手动停止导致麦克风长时间占用 */
+    private fun resetIdleTimeout() {
+        idleTimeoutJob?.cancel()
+        idleTimeoutJob = scope.launch {
+            delay(60_000)
+            if (_state.value.status == AsrStatus.LISTENING) {
+                _state.update { it.copy(status = AsrStatus.FINALIZING) }
+                recorder.stop()
+                client?.finish()
+                finishTimeoutJob?.cancel()
+                finishTimeoutJob = scope.launch {
+                    delay(3_500)
+                    if (_state.value.status == AsrStatus.FINALIZING) completeStop()
+                }
+            }
+        }
+    }
 
     fun start() {
         val current = _state.value.status
@@ -75,6 +94,11 @@ class AsrController(
                     connectTimeoutJob?.cancel()
                     _state.update { it.copy(status = AsrStatus.LISTENING) }
                     recorder.start(scope)
+                    resetIdleTimeout()
+                }
+
+                override fun onSpeechStarted() {
+                    resetIdleTimeout()
                 }
 
                 override fun onInterimText(text: String, stash: String) {
@@ -90,6 +114,7 @@ class AsrController(
                             recognizedText = finals.joinToString(if (isCjk) "" else " ")
                         )
                     }
+                    resetIdleTimeout()
                 }
 
                 override fun onSessionFinished() {
@@ -104,6 +129,7 @@ class AsrController(
                     ) {
                         finishTimeoutJob?.cancel()
                         connectTimeoutJob?.cancel()
+                        idleTimeoutJob?.cancel()
                         recorder.stop()
                         client?.close()
                         client = null
@@ -162,6 +188,7 @@ class AsrController(
     fun cancel() {
         finishTimeoutJob?.cancel()
         connectTimeoutJob?.cancel()
+        idleTimeoutJob?.cancel()
         stopInternal()
         pendingResult = null
         _state.value = AsrState()
@@ -169,6 +196,7 @@ class AsrController(
 
     private fun completeStop() {
         finishTimeoutJob?.cancel()
+        idleTimeoutJob?.cancel()
         stopInternal()
         val text = _state.value.recognizedText
         _state.value = AsrState()

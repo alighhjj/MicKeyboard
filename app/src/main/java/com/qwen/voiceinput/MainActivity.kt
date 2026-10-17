@@ -100,6 +100,7 @@ class MainActivity : AppCompatActivity() {
         binding.etVadThreshold.setText(settings.vadThreshold.toString())
         binding.etVadSilence.setText(settings.vadSilenceMs.toString())
         binding.swAutoInsert.isChecked = settings.autoInsert
+        binding.swShowPanel.isChecked = settings.showPanel
     }
 
     private fun saveSettings() {
@@ -113,6 +114,7 @@ class MainActivity : AppCompatActivity() {
         settings.vadThreshold = binding.etVadThreshold.text?.toString()?.toFloatOrNull() ?: 0.2f
         settings.vadSilenceMs = binding.etVadSilence.text?.toString()?.toIntOrNull() ?: 800
         settings.autoInsert = binding.swAutoInsert.isChecked
+        settings.showPanel = binding.swShowPanel.isChecked
     }
 
     // ---------------- 按钮与权限 ----------------

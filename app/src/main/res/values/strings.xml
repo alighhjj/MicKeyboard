@@ -9,7 +9,15 @@
     <string name="language_label">识别语言</string>
     <string name="vad_threshold_hint">VAD 阈值（0~1，越低越灵敏，默认 0.2）</string>
     <string name="vad_silence_hint">静音断句时长（毫秒，默认 800）</string>
-    <string name="auto_insert_label">停止说话后自动填入输入框</string>
+    <string name="auto_insert_label">停止说话后自动填入输入框（仅面板模式）</string>
+    <string name="setting_show_panel">显示聆听面板</string>
+    <string name="setting_show_panel_hint">默认关闭：说话内容实时直接输入当前文本框，无聆听窗口。开启后弹出发光面板显示识别过程，停止说话后再填入。</string>
+
+    <!-- 直接输入模式提示 -->
+    <string name="direct_listening">聆听中，说话内容将直接输入…</string>
+    <string name="direct_need_input">请先点击一个输入框，再开始语音输入</string>
+    <string name="direct_inserted">识别结束，已填入输入框</string>
+    <string name="direct_empty">未识别到内容</string>
 
     <!-- 激活方式区 -->
     <string name="section_activation">激活方式</string>
@@ -19,7 +27,7 @@
     <string name="btn_open">开启</string>
     <string name="btn_start_service">启动悬浮图标</string>
     <string name="btn_stop_service">停止悬浮图标</string>
-    <string name="usage_hint">使用方法：启动悬浮图标后，切换到任意 App 并点击输入框，再点击屏幕边缘的麦克风悬浮球开始说话；停止说话后（或再次点击悬浮球），识别结果会自动填入输入框。也可以在下拉通知栏的快捷设置里添加「Qwen语音输入」磁贴，一键开关悬浮图标。</string>
+    <string name="usage_hint">使用方法（默认直接输入模式）：启动悬浮图标后，切换到任意 App 并点击输入框，点击屏幕边缘的麦克风悬浮球开始说话——识别文字会实时直接输入到输入框中（无聆听窗口），停止说话或再次点击悬浮球即结束。也可以在下拉通知栏的快捷设置里添加「Qwen语音输入」磁贴，一键开关悬浮图标。如需聆听面板，可在上方开启「显示聆听面板」。</string>
 
     <!-- 测试区 -->
     <string name="section_test">测试识别</string>

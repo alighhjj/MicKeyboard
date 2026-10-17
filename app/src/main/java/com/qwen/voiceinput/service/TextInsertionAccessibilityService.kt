@@ -55,6 +55,12 @@ class TextInsertionAccessibilityService : AccessibilityService() {
             }
         }
 
+        /** 创建流式写入器（直接输入模式用）；@return null 表示辅助服务未开启 */
+        fun createStreamWriter(context: Context): TextInsertionAccessibilityService.StreamTextWriter? {
+            val svc = instance ?: return null
+            return svc.StreamTextWriter()
+        }
+
         fun copyToClipboard(context: Context, text: String) {
             val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             cm.setPrimaryClip(ClipData.newPlainText("qwen-voice-input", text))
@@ -104,6 +110,61 @@ class TextInsertionAccessibilityService : AccessibilityService() {
         }
         runOnMain { toast("填入失败，已复制到剪贴板") }
         return false
+    }
+
+    /**
+     * 流式文本写入器：识别过程中把增量文本实时写入当前焦点输入框。
+     *
+     * 原理：会话开始时记录输入框已有文本与光标位置作为基准，
+     * 之后每次写入 = 基准文本前半 + 暂存增量 + 基准文本后半，
+     * 每句确认（completed）后将基准前移并清空暂存。
+     */
+    inner class StreamTextWriter {
+        private var baseText: String = ""
+        private var baseSel: Int = 0
+        private var pending: String = ""
+        private var active = false
+
+        /** 锁定当前焦点输入框；@return false 表示没有可用的输入框 */
+        fun start(): Boolean {
+            val node = findFocusedEditable() ?: return false
+            val current = node.text?.toString() ?: ""
+            baseText = current
+            val sel = node.textSelectionStart
+            baseSel = if (sel in 0..current.length) sel else current.length
+            pending = ""
+            active = true
+            return true
+        }
+
+        /** 更新当前句的实时增量文本（text + stash） */
+        fun updateInterim(interim: String) {
+            if (!active) return
+            pending = interim
+            apply()
+        }
+
+        /** 一句话识别完成，提交最终文本并前移基准 */
+        fun commitFinal(final: String) {
+            if (!active || final.isEmpty()) return
+            baseText = baseText.substring(0, baseSel) + final + baseText.substring(baseSel)
+            baseSel += final.length
+            pending = ""
+            apply()
+        }
+
+        fun stop() {
+            active = false
+            pending = ""
+        }
+
+        private fun apply() {
+            val node = findFocusedEditable() ?: return
+            val newText = baseText.substring(0, baseSel) + pending + baseText.substring(baseSel)
+            if (setText(node, newText)) {
+                setSelection(node, baseSel + pending.length)
+            }
+        }
     }
 
     private fun findFocusedEditable(): AccessibilityNodeInfo? {
@@ -161,6 +222,18 @@ class TextInsertionAccessibilityService : AccessibilityService() {
         }
         return try {
             node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun setSelection(node: AccessibilityNodeInfo, pos: Int): Boolean {
+        val args = Bundle().apply {
+            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, pos)
+            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, pos)
+        }
+        return try {
+            node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, args)
         } catch (_: Exception) {
             false
         }

@@ -30,10 +30,19 @@ class SettingsRepository(context: Context) {
         get() = prefs.getInt(KEY_VAD_SILENCE, 800)
         set(value) = prefs.edit().putInt(KEY_VAD_SILENCE, value).apply()
 
-    /** 停止说话后是否自动填入当前输入框（关闭则显示手动填入按钮） */
+    /** 停止说话后是否自动填入当前输入框（面板模式下生效） */
     var autoInsert: Boolean
         get() = prefs.getBoolean(KEY_AUTO_INSERT, true)
         set(value) = prefs.edit().putBoolean(KEY_AUTO_INSERT, value).apply()
+
+    /**
+     * 是否显示聆听面板。
+     * 关闭（默认）：识别文字实时直接输入当前焦点文本框，无任何悬浮窗口；
+     * 开启：弹出发光面板显示实时文本，停止后由 autoInsert 决定填入方式。
+     */
+    var showPanel: Boolean
+        get() = prefs.getBoolean(KEY_SHOW_PANEL, false)
+        set(value) = prefs.edit().putBoolean(KEY_SHOW_PANEL, value).apply()
 
     /** DashScope realtime 接入地址（高级选项） */
     var endpointBase: String
@@ -59,6 +68,7 @@ class SettingsRepository(context: Context) {
         private const val KEY_VAD_THRESHOLD = "vad_threshold"
         private const val KEY_VAD_SILENCE = "vad_silence"
         private const val KEY_AUTO_INSERT = "auto_insert"
+        private const val KEY_SHOW_PANEL = "show_panel"
         private const val KEY_ENDPOINT = "endpoint"
     }
 }

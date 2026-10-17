@@ -374,27 +374,89 @@ class FloatingBubbleService : Service() {
 
     // ---------------- 识别流程 ----------------
 
+    /** 直接输入模式（无面板）的流式写入状态 */
+    private var streamWriter: TextInsertionAccessibilityService.StreamTextWriter? = null
+    private var lastInterim: String = ""
+    private var committedFinals: Int = 0
+
+    private val directInputMode: Boolean get() = !settings.showPanel
+
+    private fun resetDirectState() {
+        streamWriter?.stop()
+        streamWriter = null
+        lastInterim = ""
+        committedFinals = 0
+    }
+
     private fun startRecognition() {
         // 清理可能存在的上一次会话（含错误态）
         asrController?.let { old ->
             stateCollectJob?.cancel()
+            stateCollectJob = null
             old.cancel()
             asrController = null
         }
+        resetDirectState()
         if (settings.apiKey.isBlank()) {
             toast(getString(R.string.hint_need_api_key))
             return
         }
         pendingText = ""
-        addPanel()
+
         val controller = AsrController(scope, settings.toAsrConfig())
         asrController = controller
         stateCollectJob = scope.launch {
-            controller.state.collect { renderPanel(it) }
+            controller.state.collect { s ->
+                if (directInputMode) handleDirectState(s) else renderPanel(s)
+            }
         }
-        controller.start()
+
+        if (directInputMode) {
+            // 直接输入模式：先锁定当前焦点输入框，识别文字将实时写入其中，无聆听窗口
+            val writer = TextInsertionAccessibilityService.createStreamWriter(this)
+            if (writer == null || !writer.start()) {
+                controller.cancel()
+                asrController = null
+                stateCollectJob?.cancel()
+                stateCollectJob = null
+                toast(getString(R.string.direct_need_input))
+                return
+            }
+            streamWriter = writer
+            controller.start()
+            toast(getString(R.string.direct_listening))
+        } else {
+            addPanel()
+            controller.start()
+        }
         startPulse()
         updateNotification(getString(R.string.notification_listening))
+    }
+
+    /** 直接输入模式：把增量/确认文本实时写入焦点输入框 */
+    private fun handleDirectState(s: AsrState) {
+        val writer = streamWriter
+        if (writer != null) {
+            while (committedFinals < s.finals.size) {
+                writer.commitFinal(s.finals[committedFinals])
+                committedFinals++
+            }
+            if (s.interim != lastInterim) {
+                writer.updateInterim(s.interim)
+                lastInterim = s.interim
+            }
+        }
+        if (s.status == AsrStatus.ERROR) {
+            // 错误态自清理：释放写入器并停止脉冲，用户再次点击悬浮球即可重新开始
+            resetDirectState()
+            asrController?.cancel()
+            asrController = null
+            stateCollectJob?.cancel()
+            stateCollectJob = null
+            stopPulse()
+            updateNotification(getString(R.string.notification_idle))
+            toast(s.errorMessage ?: getString(R.string.panel_error))
+        }
     }
 
     private fun finishRecognition() {
@@ -404,8 +466,17 @@ class FloatingBubbleService : Service() {
             asrController = null
             stateCollectJob?.cancel()
             stateCollectJob = null
-            pendingText = text
+            resetDirectState()
             when {
+                // 直接输入模式：文本已在识别过程中实时写入输入框，无需额外操作
+                directInputMode -> {
+                    toast(
+                        if (text.isNotBlank()) getString(R.string.direct_inserted)
+                        else getString(R.string.direct_empty)
+                    )
+                    updateNotification(getString(R.string.notification_idle))
+                }
+
                 text.isBlank() -> {
                     hidePanel()
                     updateNotification(getString(R.string.notification_idle))
@@ -453,6 +524,7 @@ class FloatingBubbleService : Service() {
         stateCollectJob = null
         asrController?.cancel()
         asrController = null
+        resetDirectState()
         pendingText = ""
         hidePanel()
         updateNotification(getString(R.string.notification_idle))
