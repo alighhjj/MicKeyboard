@@ -11,7 +11,9 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
@@ -58,6 +60,7 @@ class FloatingBubbleService : Service() {
     companion object {
         const val ACTION_START = "com.qwen.voiceinput.action.START"
         const val ACTION_STOP = "com.qwen.voiceinput.action.STOP"
+        const val ACTION_REFRESH_STYLE = "com.qwen.voiceinput.action.REFRESH_STYLE"
 
         private const val TAG = "FloatingBubble"
         private const val CHANNEL_ID = "voice_input_service"
@@ -99,6 +102,12 @@ class FloatingBubbleService : Service() {
         if (intent?.action == ACTION_STOP) {
             stopSelf()
             return START_NOT_STICKY
+        }
+        if (intent?.action == ACTION_REFRESH_STYLE) {
+            // 设置界面改了配色/透明度：即时刷新，不重启服务
+            applyBubbleStyle()
+            applyPanelStyle()
+            return START_STICKY
         }
         val hasOverlay = Settings.canDrawOverlays(this)
         val hasMic = ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) ==
@@ -152,6 +161,7 @@ class FloatingBubbleService : Service() {
         }
         bubbleView = binding.root
         bubbleParams = params
+        applyBubbleStyle()
     }
 
     private fun removeBubble() {
@@ -309,6 +319,7 @@ class FloatingBubbleService : Service() {
         }
         panelView = binding.root
         panelParams = params
+        applyPanelStyle()
     }
 
     private fun removePanel() {
@@ -623,6 +634,37 @@ class FloatingBubbleService : Service() {
             )
         } else {
             startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
+    // ---------------- 悬浮窗外观（配色 / 透明度） ----------------
+
+    /** 应用悬浮球配色与透明度（设置变更时通过 ACTION_REFRESH_STYLE 触发刷新） */
+    private fun applyBubbleStyle() {
+        val v = bubbleView ?: return
+        val base = settings.bubbleColor
+        val color = Color.argb(
+            (settings.bubbleAlpha * 255).toInt().coerceIn(0, 255),
+            Color.red(base),
+            Color.green(base),
+            Color.blue(base)
+        )
+        v.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(color)
+            setStroke(dp(1), 0x66FFFFFF)
+        }
+    }
+
+    /** 应用识别面板背景透明度 */
+    private fun applyPanelStyle() {
+        val v = panelView ?: return
+        val alpha = (settings.panelAlpha * 255).toInt().coerceIn(0, 255)
+        v.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(16).toFloat()
+            setColor(Color.argb(alpha, 0x1F, 0x24, 0x30))
+            setStroke(dp(1), 0x33FFFFFF)
         }
     }
 

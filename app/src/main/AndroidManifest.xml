@@ -63,5 +63,19 @@
                 <action android:name="android.service.quicksettings.action.QSTILE" />
             </intent-filter>
         </service>
+
+        <!-- 键盘模式：极简语音输入法 -->
+        <service
+            android:name=".ime.VoiceInputMethodService"
+            android:exported="true"
+            android:label="@string/ime_name"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/method" />
+        </service>
     </application>
 </manifest>

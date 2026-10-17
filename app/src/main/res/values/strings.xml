@@ -1,6 +1,25 @@
 <resources>
-    <string name="app_name">Qwen语音输入</string>
-    <string name="app_subtitle">基于 Qwen3-ASR-Realtime 的全局语音输入 · 点击悬浮球即说即填</string>
+    <string name="app_name">MicKeyboard</string>
+    <string name="app_subtitle">Qwen3-ASR 实时语音输入 · 悬浮窗 / 语音键盘双模式，即说即填</string>
+
+    <!-- 键盘模式 -->
+    <string name="ime_name">MicKeyboard 语音键盘</string>
+    <string name="ime_subtype_label">MicKeyboard 语音输入</string>
+    <string name="section_ime">键盘模式（输入法）</string>
+    <string name="ime_enabled_row">输入法已启用</string>
+    <string name="ime_not_enabled_row">输入法未启用</string>
+    <string name="ime_current_row">当前输入法</string>
+    <string name="ime_enable_btn">去启用</string>
+    <string name="ime_switch_btn">切换</string>
+    <string name="ime_auto_send_label">结束识别后发送（回车/发送键）</string>
+    <string name="ime_usage_hint">启用本输入法后，在任意输入框切换到「MicKeyboard 语音键盘」，点击大按钮开始说话，文字实时输入；再点一次结束并发送。与悬浮窗模式可同时使用。</string>
+    <string name="ime_start">🎤 开始语音输入</string>
+    <string name="ime_connecting">连接中…</string>
+    <string name="ime_stop_and_send">■ 停止并发送</string>
+    <string name="ime_finalizing">识别中…</string>
+    <string name="ime_idle_hint">点击按钮开始语音输入</string>
+    <string name="ime_switch">切换键盘</string>
+    <string name="ime_need_mic">麦克风权限未授予，请打开 MicKeyboard 完成一次识别测试</string>
 
     <!-- 设置区 -->
     <string name="section_settings">识别设置</string>
@@ -12,6 +31,12 @@
     <string name="auto_insert_label">停止说话后自动填入输入框（仅面板模式）</string>
     <string name="setting_show_panel">显示聆听面板</string>
     <string name="setting_show_panel_hint">默认关闭：说话内容实时直接输入当前文本框，无聆听窗口。开启后弹出发光面板显示识别过程，停止说话后再填入。</string>
+
+    <!-- 悬浮窗外观 -->
+    <string name="section_appearance">悬浮窗外观</string>
+    <string name="bubble_color_label">悬浮球颜色</string>
+    <string name="bubble_alpha_label">悬浮球透明度</string>
+    <string name="panel_alpha_label">聆听面板透明度（面板模式生效）</string>
 
     <!-- 直接输入模式提示 -->
     <string name="direct_listening">聆听中，说话内容将直接输入…</string>
@@ -59,10 +84,10 @@
     <string name="notification_idle">悬浮图标已开启，点击开始语音输入</string>
     <string name="notification_listening">聆听中…</string>
     <string name="notification_action_stop">停止</string>
-    <string name="tile_label">Qwen语音输入</string>
+    <string name="tile_label">MicKeyboard</string>
 
     <!-- 辅助服务 -->
-    <string name="accessibility_service_label">Qwen语音输入 - 文本填入</string>
+    <string name="accessibility_service_label">MicKeyboard - 文本填入</string>
     <string name="accessibility_service_description">用于将语音识别结果快速填入当前获得焦点的文本输入框。开启后，识别完成时会自动把文本插入到你正在输入的位置。</string>
 
     <!-- 提示 -->

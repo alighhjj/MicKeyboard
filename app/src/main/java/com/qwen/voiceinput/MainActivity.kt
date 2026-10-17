@@ -2,12 +2,17 @@ package com.qwen.voiceinput
 
 import android.Manifest
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
+import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -18,6 +23,7 @@ import com.qwen.voiceinput.asr.AsrController
 import com.qwen.voiceinput.asr.AsrState
 import com.qwen.voiceinput.asr.AsrStatus
 import com.qwen.voiceinput.databinding.ActivityMainBinding
+import com.qwen.voiceinput.ime.VoiceInputMethodService
 import com.qwen.voiceinput.service.FloatingBubbleService
 import com.qwen.voiceinput.service.TextInsertionAccessibilityService
 import kotlinx.coroutines.Job
@@ -60,16 +66,25 @@ class MainActivity : AppCompatActivity() {
         setupSpinners()
         loadSettings()
         setupButtons()
+        setupAppearance()
     }
 
     override fun onResume() {
         super.onResume()
         refreshPermissionStates()
         refreshServiceButton()
+        refreshImeState()
     }
 
     override fun onPause() {
         saveSettings()
+        // 悬浮窗外观变更即时生效
+        if (FloatingBubbleService.isRunning) {
+            startService(
+                Intent(this, FloatingBubbleService::class.java)
+                    .setAction(FloatingBubbleService.ACTION_REFRESH_STYLE)
+            )
+        }
         super.onPause()
     }
 
@@ -101,6 +116,7 @@ class MainActivity : AppCompatActivity() {
         binding.etVadSilence.setText(settings.vadSilenceMs.toString())
         binding.swAutoInsert.isChecked = settings.autoInsert
         binding.swShowPanel.isChecked = settings.showPanel
+        binding.swImeAutoSend.isChecked = settings.imeAutoSend
     }
 
     private fun saveSettings() {
@@ -115,6 +131,7 @@ class MainActivity : AppCompatActivity() {
         settings.vadSilenceMs = binding.etVadSilence.text?.toString()?.toIntOrNull() ?: 800
         settings.autoInsert = binding.swAutoInsert.isChecked
         settings.showPanel = binding.swShowPanel.isChecked
+        settings.imeAutoSend = binding.swImeAutoSend.isChecked
     }
 
     // ---------------- 按钮与权限 ----------------
@@ -138,7 +155,108 @@ class MainActivity : AppCompatActivity() {
         }
         binding.btnToggleService.setOnClickListener { toggleService() }
         binding.btnTestStart.setOnClickListener { toggleTest() }
+
+        // 键盘模式
+        binding.btnImeEnable.setOnClickListener {
+            startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+        }
+        binding.btnImeSwitch.setOnClickListener {
+            try {
+                getSystemService(InputMethodManager::class.java).showInputMethodPicker()
+            } catch (_: Exception) {
+            }
+        }
     }
+
+    private fun refreshImeState() {
+        val enabled = VoiceInputMethodService.isEnabled(this)
+        binding.tvImeStatus.setText(
+            if (enabled) R.string.ime_enabled_row else R.string.ime_not_enabled_row
+        )
+        binding.btnImeEnable.isEnabled = !enabled
+        val current = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.DEFAULT_INPUT_METHOD
+        ) ?: ""
+        binding.tvImeCurrent.text =
+            if (current.startsWith(packageName)) "已切换到 MicKeyboard"
+            else getString(R.string.ime_current_row)
+    }
+
+    // ---------------- 悬浮窗外观 ----------------
+
+    private fun setupAppearance() {
+        val colors = resources.getIntArray(R.array.bubble_color_values)
+        val density = resources.displayMetrics.density
+        val size = (34 * density).toInt()
+        val margin = (12 * density).toInt()
+        colors.forEach { color ->
+            val chip = View(this).apply {
+                tag = color
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(color)
+                }
+                layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                    marginEnd = margin
+                }
+                setOnClickListener {
+                    settings.bubbleColor = color
+                    refreshColorChips()
+                }
+            }
+            binding.colorChips.addView(chip)
+        }
+        refreshColorChips()
+
+        binding.seekBubbleAlpha.progress = alphaToProgress(settings.bubbleAlpha)
+        binding.seekBubbleAlpha.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    settings.bubbleAlpha = progressToAlpha(progress)
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            }
+        )
+
+        binding.seekPanelAlpha.progress = alphaToProgress(settings.panelAlpha)
+        binding.seekPanelAlpha.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    settings.panelAlpha = progressToAlpha(progress)
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            }
+        )
+    }
+
+    private fun refreshColorChips() {
+        val selected = settings.bubbleColor
+        for (i in 0 until binding.colorChips.childCount) {
+            val chip = binding.colorChips.getChildAt(i)
+            val color = chip.tag as? Int ?: continue
+            chip.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(color)
+                if (color == selected) {
+                    setStroke(dp(3), Color.WHITE)
+                }
+            }
+        }
+    }
+
+    /** SeekBar 0~100 → 透明度 0.3~1.0 */
+    private fun progressToAlpha(progress: Int): Float = 0.3f + progress / 100f * 0.7f
+
+    private fun alphaToProgress(alpha: Float): Int =
+        ((alpha - 0.3f) / 0.7f * 100).toInt().coerceIn(0, 100)
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
 
     private fun refreshPermissionStates() {
         val granted = getString(R.string.perm_granted)

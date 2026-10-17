@@ -25,4 +25,22 @@
         <item>es</item>
         <item>ru</item>
     </string-array>
+
+    <!-- 悬浮球配色预设 -->
+    <string-array name="bubble_color_labels">
+        <item>品牌蓝</item>
+        <item>翠绿</item>
+        <item>琥珀橙</item>
+        <item>紫罗兰</item>
+        <item>珊瑚红</item>
+        <item>青碧</item>
+    </string-array>
+    <integer-array name="bubble_color_values">
+        <item>0xFF4F8CFF</item>
+        <item>0xFF3AD07A</item>
+        <item>0xFFFFB020</item>
+        <item>0xFFB36BFF</item>
+        <item>0xFFFF5C5C</item>
+        <item>0xFF26C6DA</item>
+    </integer-array>
 </resources>
