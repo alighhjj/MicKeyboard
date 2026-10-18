@@ -221,9 +221,9 @@ class VoiceInputMethodService : InputMethodService() {
             controller = null
             collectJob?.cancel()
             collectJob = null
-            if (settings.imeAutoSend) {
-                performSend()
-            } else if (text.isNotBlank()) {
+            // 只负责把文字填进输入框，不执行任何发送动作——提交由用户
+            // 点键盘中间的发送键（或 App 自带发送按钮）完成
+            if (text.isNotBlank()) {
                 toast(getString(R.string.direct_inserted))
             }
             resetUi()
@@ -286,7 +286,7 @@ class VoiceInputMethodService : InputMethodService() {
             AsrStatus.CONNECTING -> updateButton(R.string.ime_connecting, enabled = false)
 
             AsrStatus.LISTENING -> {
-                updateButton(R.string.ime_stop_and_send, enabled = true)
+                updateButton(R.string.ime_stop, enabled = true)
                 setStatus(getString(R.string.panel_listening))
             }
 

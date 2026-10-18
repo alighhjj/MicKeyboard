@@ -32,7 +32,7 @@
             android:src="@drawable/ic_keyboard" />
     </LinearLayout>
 
-    <!-- 按钮排：左=语音输入(开始/停止并发送)，中=发送(回车)，右=退格删除 -->
+    <!-- 按钮排：左=语音输入(开始/停止，文字留框不自动发送)，中=发送(回车)，右=退格删除 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

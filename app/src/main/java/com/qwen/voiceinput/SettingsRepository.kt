@@ -44,11 +44,6 @@ class SettingsRepository(context: Context) {
         get() = prefs.getBoolean(KEY_SHOW_PANEL, false)
         set(value) = prefs.edit().putBoolean(KEY_SHOW_PANEL, value).apply()
 
-    /** 键盘模式下，结束识别后是否执行发送动作（回车/发送键） */
-    var imeAutoSend: Boolean
-        get() = prefs.getBoolean(KEY_IME_AUTO_SEND, true)
-        set(value) = prefs.edit().putBoolean(KEY_IME_AUTO_SEND, value).apply()
-
     /** 悬浮球不透明度 0.3~1.0 */
     var bubbleAlpha: Float
         get() = prefs.getFloat(KEY_BUBBLE_ALPHA, 0.95f)
@@ -90,7 +85,6 @@ class SettingsRepository(context: Context) {
         private const val KEY_VAD_SILENCE = "vad_silence"
         private const val KEY_AUTO_INSERT = "auto_insert"
         private const val KEY_SHOW_PANEL = "show_panel"
-        private const val KEY_IME_AUTO_SEND = "ime_auto_send"
         private const val KEY_BUBBLE_ALPHA = "bubble_alpha"
         private const val KEY_BUBBLE_COLOR = "bubble_color"
         private const val KEY_PANEL_ALPHA = "panel_alpha"

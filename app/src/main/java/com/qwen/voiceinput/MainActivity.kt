@@ -116,7 +116,6 @@ class MainActivity : AppCompatActivity() {
         binding.etVadSilence.setText(settings.vadSilenceMs.toString())
         binding.swAutoInsert.isChecked = settings.autoInsert
         binding.swShowPanel.isChecked = settings.showPanel
-        binding.swImeAutoSend.isChecked = settings.imeAutoSend
     }
 
     private fun saveSettings() {
@@ -131,7 +130,6 @@ class MainActivity : AppCompatActivity() {
         settings.vadSilenceMs = binding.etVadSilence.text?.toString()?.toIntOrNull() ?: 800
         settings.autoInsert = binding.swAutoInsert.isChecked
         settings.showPanel = binding.swShowPanel.isChecked
-        settings.imeAutoSend = binding.swImeAutoSend.isChecked
     }
 
     // ---------------- 按钮与权限 ----------------

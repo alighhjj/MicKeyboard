@@ -11,11 +11,10 @@
     <string name="ime_current_row">当前输入法</string>
     <string name="ime_enable_btn">去启用</string>
     <string name="ime_switch_btn">切换</string>
-    <string name="ime_auto_send_label">结束识别后发送（回车/发送键）</string>
-    <string name="ime_usage_hint">启用本输入法后，在任意输入框切换到「MicKeyboard 语音键盘」，点击大按钮开始说话，文字实时输入；再点一次结束并发送。与悬浮窗模式可同时使用。</string>
+    <string name="ime_usage_hint">启用本输入法后，在任意输入框切换到「MicKeyboard 语音键盘」，点击大按钮开始说话，文字实时输入；再点一次停止，文字留在输入框，点键盘中间的发送键（或 App 自带发送按钮）提交。与悬浮窗模式可同时使用。</string>
     <string name="ime_start">🎤 开始语音输入</string>
     <string name="ime_connecting">连接中…</string>
-    <string name="ime_stop_and_send">■ 停止并发送</string>
+    <string name="ime_stop">■ 停止</string>
     <string name="ime_finalizing">识别中…</string>
     <string name="ime_idle_hint">点击按钮开始语音输入</string>
     <string name="ime_send">发送</string>
