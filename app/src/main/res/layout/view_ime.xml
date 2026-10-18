@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/ime_idle_hint"
-            android:textColor="#FF8A8F99"
+            android:textColor="#FFAEB4C2"
             android:textSize="12sp" />
 
         <ImageView
@@ -47,7 +47,7 @@
             android:background="@drawable/bg_ime_voice_button"
             android:text="@string/ime_start"
             android:textAllCaps="false"
-            android:textColor="@color/on_brand"
+            android:textColor="@color/brand_button_text"
             android:textSize="16sp"
             android:textStyle="bold" />
 

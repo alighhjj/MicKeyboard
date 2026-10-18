@@ -205,7 +205,7 @@
             android:minHeight="48dp"
             android:background="@drawable/bg_brand_button"
             android:text="@string/btn_start_service"
-            android:textColor="@color/on_brand"
+            android:textColor="@color/brand_button_text"
             app:backgroundTint="@null"
             app:cornerRadius="24dp"
             tools:text="开启悬浮球服务" />
@@ -499,7 +499,7 @@
             android:minHeight="48dp"
             android:background="@drawable/bg_brand_button"
             android:text="@string/start_recognition"
-            android:textColor="@color/on_brand"
+            android:textColor="@color/brand_button_text"
             app:backgroundTint="@null"
             app:cornerRadius="24dp"
             tools:text="开始测试识别" />

@@ -8,12 +8,12 @@
     <path
         android:fillColor="#00000000"
         android:pathData="M15,3 A5,5 0 1 0 15,13 A5,5 0 1 0 15,3 Z M15,6.5 A1.5,1.5 0 1 0 15,9.5 A1.5,1.5 0 1 0 15,6.5 Z"
-        android:strokeColor="#FF1F2430"
+        android:strokeColor="@color/icon_tint"
         android:strokeWidth="1.8" />
     <path
         android:fillColor="#00000000"
         android:pathData="M13.2,11.8 L19,17.6 M16.5,15.1 L18.2,16.8 M17.9,16.5 L19.6,18.2"
-        android:strokeColor="#FF1F2430"
+        android:strokeColor="@color/icon_tint"
         android:strokeLineCap="round"
         android:strokeWidth="1.8" />
 </vector>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 暗色模式品牌色变体：分组标题 / 进度条 / 实时识别文字在深色窗口背景上
+     必须使用浅色，否则近黑文字对比度极低、几乎不可见 -->
+<resources>
+    <color name="brand_500">#FFC9CDD8</color>
+    <color name="brand_700">#FFE3E6ED</color>
+    <color name="icon_tint">#FFE8E9ED</color>
+    <color name="icon_tile_bg">#26FFFFFF</color>
+</resources>

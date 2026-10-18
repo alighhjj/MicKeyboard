@@ -103,7 +103,7 @@ class VoiceInputMethodService : InputMethodService() {
         }
         fallbackStatus = TextView(this).apply {
             text = getString(R.string.ime_idle_hint)
-            setTextColor(0xFF8A8F99.toInt())
+            setTextColor(0xFFAEB4C2.toInt())
             textSize = 12f
         }
         fallbackButton = Button(this).apply {

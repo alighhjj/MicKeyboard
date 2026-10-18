@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 暗色模式主题覆盖：colorPrimary 引用 brand_500（night 变体为浅灰），
+     故 colorOnPrimary 必须相应改为深色，保证 Material 组件文字对比度 -->
+<resources>
+    <style name="Theme.QwenVoiceInput" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand_500</item>
+        <item name="colorOnPrimary">#FF1F2430</item>
+        <item name="colorSecondary">@color/brand_700</item>
+    </style>
+</resources>

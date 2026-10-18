@@ -11,4 +11,9 @@
     <color name="ic_launcher_background">#FF0B0D10</color>
     <!-- 品牌色表面上的前景色（键盘主按钮文字等，黑底白字） -->
     <color name="on_brand">#FFFFFFFF</color>
+    <!-- 品牌按钮文字色：固定白色（按钮背景恒为黑渐变，不随夜间模式改变） -->
+    <color name="brand_button_text">#FFFFFFFF</color>
+    <!-- 列表图标与图标底（浅色模式：近黑图标 + 淡黑底；暗色模式见 values-night） -->
+    <color name="icon_tint">#FF1F2430</color>
+    <color name="icon_tile_bg">#141F2430</color>
 </resources>
