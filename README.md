@@ -64,7 +64,7 @@ App (AudioRecord 16kHz PCM16)
 2. 键盘为**三按钮排布**（总高 64dp）：
    - **左：麦克风大按钮**（占主要宽度）——点击开始说话，文字**实时逐字写入当前编辑框**，按钮脉冲表示聆听中；**再次点击停止识别，文字留在输入框内**（不自动提交，由你决定何时发送）
    - **中：发送键**（纸飞机图标）——手动提交：等价于系统键盘的回车，输入框声明了 EditorAction（发送/搜索/前往）走 `sendDefaultEditorAction`，无 action 的输入框发送真实回车键事件
-   - **右：退格删除键**——发送真实 DEL 键事件删除光标前一个字符（正确处理 composition 与选区，删除失败时降级 `deleteSurroundingText`）
+   - **右：退格删除键**——单击删除光标前一个字符（真实 DEL 键事件，正确处理 composition 与选区，失败时降级 `deleteSurroundingText`）；**长按连续删除**（约 80ms 一个，带触觉反馈），松手即停，按住不放可一直删到输入框清空
 3. 也可点右上角图标快速切换回系统键盘
 4. 切换输入框时键盘自动收起初识别的残留文本，不会串输入
 
@@ -165,6 +165,7 @@ qwen-voice-input/
 - **IME 的 method.xml 不要写 settingsActivity**：该值必须是完整组件名，而 debug 构建 applicationId 带 `.debug` 后缀，写死 `com.qwen.voiceinput.MainActivity` 会导致系统解析不到组件、整个输入法不被识别（`ime enable` 报 "Unknown input method"）
 - **流式直接输入**（悬浮球模式）：`StreamTextWriter` 在会话开始时记录输入框已有文本与光标位置作为基准，每次增量到达时写入「基准前半 + 实时增量 + 基准后半」并用 `ACTION_SET_SELECTION` 保持光标位于增量末尾；每句 `completed` 确认后将基准前移、清空暂存，实现"边说边出字"且不覆盖用户已有内容。读取基准时通过 `isShowingHintText()` 过滤占位提示（hint），避免空输入框的提示文本被拼接到识别结果前
 - **键盘三按钮布局**：左键（`btn_voice`，weight=1）语音 toggle；中键（`btn_send`，56dp 纸飞机）与右键（`btn_backspace`，56dp 退格图标）复用同一套 `performSend()` / `backspace()` 逻辑——`performSend()` 有 action 发 action、无 action 发真实回车；`backspace()` 发 `sendDownUpKeyEvents(KEYCODE_DEL)` 真实 DEL 键事件，正确处理 composition 与选区，异常时降级 `deleteSurroundingText(1, 0)`。停止识别的回调里**不再调用 `performSend()`**（已移除设置项「结束识别后自动发送」），提交完全交由用户手动触发
+- **退格键长按连续删除**：`bindBackspaceButton()` 统一绑定单击/长按/触摸三类交互——单击删一个字符；长按触发 `startBackspaceRepeat()` 协程以约 80ms 间隔连续发 DEL 并播放 `LONG_PRESS` 触觉反馈；`OnTouchListener` 返回 false 不拦截事件（click/longClick 照常），仅在 `ACTION_UP`/`ACTION_CANCEL` 时 `stopBackspaceRepeat()`。`onFinishInput()`（键盘收起）与 `onDestroy()` 也会取消任务，避免向已失效的输入框继续发 DEL
 - **流式键盘写入**（键盘模式）：用 `deleteSurroundingText` 回退上一段增量再 `commitText` 写新增量，结束会话时 `sendDefaultEditorAction` 触发发送
 - **一次性填入**（面板模式）：`findFocus(FOCUS_INPUT)` 定位当前焦点可编辑节点，按优先级尝试 `ACTION_PASTE`（保留光标位置）→ 游标合并 `ACTION_SET_TEXT` → 末尾追加，三级回退保证兼容性
 - **动态外观**：悬浮球 / 面板背景为运行时构造的 `GradientDrawable`，颜色与透明度改动通过 `ACTION_REFRESH_STYLE` 广播即时刷新，无需重启服务

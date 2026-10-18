@@ -4,7 +4,9 @@ import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.util.Log
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -28,14 +30,16 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
  * MicKeyboard 键盘模式（输入法）。
  *
- * 键盘上只有一个主按钮：
- *  - 点击一次 → 开始语音识别，识别文字实时写入当前输入框（InputConnection）
- *  - 再点击一次 → 结束识别，文本已在框内，按设置执行发送动作（回车/发送键）
+ * 键盘为三按钮排布：
+ *  - 左：语音 toggle —— 点击开始识别，文字实时写入当前输入框；再点一次停止（不自动发送）
+ *  - 中：发送键 —— 回车/EditorAction 提交
+ *  - 右：退格键 —— 单击删除一个字符；长按连续删除，松手停止
  *
  * 与悬浮窗模式相互独立，可同时启用或任选其一。
  */
@@ -58,6 +62,9 @@ class VoiceInputMethodService : InputMethodService() {
     /** stopAndCommit 的 UI 兜底计时：防止回调未到达时按钮卡在「识别中」 */
     private var stopSafetyJob: Job? = null
 
+    /** 退格键长按连续删除的重复任务；松手时取消 */
+    private var backspaceRepeatJob: Job? = null
+
     /** 已写入输入框但尚未确认的增量文本长度 */
     private var pendingInterimLen = 0
     private var lastInterim: String = ""
@@ -75,7 +82,7 @@ class VoiceInputMethodService : InputMethodService() {
             b.btnVoice.setOnClickListener { toggle() }
             b.btnSwitchIme.setOnClickListener { switchToOtherIme() }
             b.btnSend.setOnClickListener { performSend() }
-            b.btnBackspace.setOnClickListener { backspace() }
+            bindBackspaceButton(b.btnBackspace)
             resetUi()
             b.root
         } catch (e: Exception) {
@@ -133,7 +140,7 @@ class VoiceInputMethodService : InputMethodService() {
             setPadding(p, p, p, p)
             scaleType = ImageView.ScaleType.FIT_CENTER
             contentDescription = getString(R.string.ime_backspace)
-            setOnClickListener { backspace() }
+            bindBackspaceButton(this)
         }
         lpIcon.marginStart = dp(8)
         row.addView(fallbackSend, lpIcon)
@@ -158,12 +165,16 @@ class VoiceInputMethodService : InputMethodService() {
     override fun onFinishInput() {
         // 键盘收起时若仍在识别，先提交再结束
         if (controller != null) stopAndCommit()
+        // 键盘收起时退格长按任务必须停，避免协程继续向已失效的输入框发 DEL
+        stopBackspaceRepeat()
         super.onFinishInput()
     }
 
     override fun onDestroy() {
         controller?.cancel()
         controller = null
+        backspaceRepeatJob?.cancel()
+        backspaceRepeatJob = null
         scope.cancel()
         binding = null
         fallbackButton = null
@@ -245,6 +256,42 @@ class VoiceInputMethodService : InputMethodService() {
             } catch (_: Exception) {
             }
         }
+    }
+
+    /**
+     * 绑定退格按钮的完整交互：单击删一个字符；长按连续删除（约 80ms 一个），
+     * 松手/事件取消即停。按住不放可一直删到输入框清空。
+     */
+    private fun bindBackspaceButton(btn: View) {
+        btn.setOnClickListener { backspace() }
+        btn.setOnLongClickListener {
+            // 触觉反馈让用户立刻感知「长按已生效，正在连续删除」
+            btn.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            startBackspaceRepeat()
+            true // 消费长按，避免再触发一次单击
+        }
+        btn.setOnTouchListener { _, ev ->
+            // 返回 false 不拦截事件，click/longClick 照常工作
+            if (ev.action == MotionEvent.ACTION_UP || ev.action == MotionEvent.ACTION_CANCEL) {
+                stopBackspaceRepeat()
+            }
+            false
+        }
+    }
+
+    private fun startBackspaceRepeat() {
+        backspaceRepeatJob?.cancel()
+        backspaceRepeatJob = scope.launch {
+            while (isActive) {
+                backspace()
+                delay(80)
+            }
+        }
+    }
+
+    private fun stopBackspaceRepeat() {
+        backspaceRepeatJob?.cancel()
+        backspaceRepeatJob = null
     }
 
     /**
