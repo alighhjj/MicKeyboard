@@ -4,6 +4,7 @@ import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.util.Log
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -191,8 +192,12 @@ class VoiceInputMethodService : InputMethodService() {
     }
 
     /**
-     * 执行「发送」：仅当输入框声明了明确的 EditorAction（发送/搜索/前往等）时才触发，
-     * 普通纯文本输入框（备忘录、地址栏等）没有发送语义——文本已在识别过程中实时写入框内。
+     * 执行「发送」：
+     *  - 输入框声明了 EditorAction（发送/搜索/前往等）→ sendDefaultEditorAction
+     *  - 无 action 的输入框（浏览器地址栏、搜索框、多数聊天输入框）→ 发送真实
+     *    回车键事件（ACTION_DOWN + ACTION_UP），走按键通路让输入框/App 自行处理提交。
+     * 注意：微信/QQ 的发送按钮是 App 内部控件，软键盘无法直接触发（回车在其
+     * 多行输入框中表现为换行），此类 App 需点其自带发送按钮。
      */
     private fun performSend() {
         val ei = currentInputEditorInfo ?: return
@@ -201,6 +206,11 @@ class VoiceInputMethodService : InputMethodService() {
         if (action != EditorInfo.IME_ACTION_NONE && !noEnterAction) {
             try {
                 sendDefaultEditorAction(true)
+            } catch (_: Exception) {
+            }
+        } else {
+            try {
+                sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
             } catch (_: Exception) {
             }
         }
