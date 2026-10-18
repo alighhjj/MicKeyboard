@@ -1,6 +1,7 @@
 package com.qwen.voiceinput.asr
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,7 +68,7 @@ class AsrController(
                 client?.finish()
                 finishTimeoutJob?.cancel()
                 finishTimeoutJob = scope.launch {
-                    delay(3_500)
+                    delay(2_500)
                     if (_state.value.status == AsrStatus.FINALIZING) completeStop()
                 }
             }
@@ -165,11 +166,12 @@ class AsrController(
 
     /**
      * 停止识别并取回本次完整文本。
-     * 先发送 session.finish，等待最后一句 completed 事件（或 3.5s 超时兜底）。
+     * 先发送 session.finish，等待最后一句 completed 事件（或 2.5s 超时兜底）。
      */
     fun stop(onResult: (String) -> Unit) {
         val status = _state.value.status
-        if (status == AsrStatus.IDLE || status == AsrStatus.ERROR) {
+        // 连接已断开时 finish 不会产生 session.finished，直接回调，避免干等超时
+        if (status == AsrStatus.IDLE || status == AsrStatus.ERROR || client == null) {
             onResult(_state.value.recognizedText)
             return
         }
@@ -179,7 +181,7 @@ class AsrController(
         client?.finish()
         finishTimeoutJob?.cancel()
         finishTimeoutJob = scope.launch {
-            delay(3_500)
+            delay(2_500)
             if (_state.value.status == AsrStatus.FINALIZING) completeStop()
         }
     }
@@ -200,8 +202,13 @@ class AsrController(
         stopInternal()
         val text = _state.value.recognizedText
         _state.value = AsrState()
-        pendingResult?.invoke(text)
+        val callback = pendingResult
         pendingResult = null
+        if (callback != null) {
+            // session.finished 可能在 OkHttp reader 线程到达；回调通常涉及 UI 操作
+            // （恢复按钮、toast、隐藏面板），必须切回主线程执行，否则 CalledFromWrongThreadException
+            scope.launch(Dispatchers.Main) { callback.invoke(text) }
+        }
     }
 
     private fun stopInternal() {

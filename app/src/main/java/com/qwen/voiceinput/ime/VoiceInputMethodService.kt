@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -48,6 +49,9 @@ class VoiceInputMethodService : InputMethodService() {
 
     private var controller: AsrController? = null
     private var collectJob: Job? = null
+
+    /** stopAndCommit 的 UI 兜底计时：防止回调未到达时按钮卡在「识别中」 */
+    private var stopSafetyJob: Job? = null
 
     /** 已写入输入框但尚未确认的增量文本长度 */
     private var pendingInterimLen = 0
@@ -158,20 +162,48 @@ class VoiceInputMethodService : InputMethodService() {
 
     private fun stopAndCommit() {
         val c = controller ?: return
+        // UI 兜底：即使 stop 回调因任何原因未到达，也保证按钮不会卡在「识别中」
+        stopSafetyJob?.cancel()
+        stopSafetyJob = scope.launch {
+            delay(5_000)
+            if (controller != null) {
+                controller?.cancel()
+                controller = null
+                collectJob?.cancel()
+                collectJob = null
+                resetUi()
+                toast(getString(R.string.direct_empty))
+            }
+        }
         c.stop { text ->
+            stopSafetyJob?.cancel()
             controller = null
             collectJob?.cancel()
             collectJob = null
             if (settings.imeAutoSend) {
-                try {
-                    sendDefaultEditorAction(true)
-                } catch (_: Exception) {
-                }
+                performSend()
+            } else if (text.isNotBlank()) {
+                toast(getString(R.string.direct_inserted))
             }
             resetUi()
-            if (text.isBlank()) toast(getString(R.string.direct_empty))
         }
         updateButton(R.string.ime_finalizing, enabled = false)
+    }
+
+    /**
+     * 执行「发送」：仅当输入框声明了明确的 EditorAction（发送/搜索/前往等）时才触发，
+     * 普通纯文本输入框（备忘录、地址栏等）没有发送语义——文本已在识别过程中实时写入框内。
+     */
+    private fun performSend() {
+        val ei = currentInputEditorInfo ?: return
+        val action = ei.imeOptions and EditorInfo.IME_MASK_ACTION
+        val noEnterAction = ei.imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0
+        if (action != EditorInfo.IME_ACTION_NONE && !noEnterAction) {
+            try {
+                sendDefaultEditorAction(true)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     private fun switchToOtherIme() {
