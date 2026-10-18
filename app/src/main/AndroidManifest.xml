@@ -64,11 +64,15 @@
             </intent-filter>
         </service>
 
-        <!-- 键盘模式：极简语音输入法 -->
+        <!-- 键盘模式：极简语音输入法。
+             android:theme 必须指定：IME 服务上下文默认不是 Material 主题，
+             布局中一旦使用 Material 组件（MaterialButton 等）会在 inflate 时
+             触发 ThemeEnforcement 校验失败而崩溃（键盘无法显示 + 进程反复重启）。 -->
         <service
             android:name=".ime.VoiceInputMethodService"
             android:exported="true"
             android:label="@string/ime_name"
+            android:theme="@style/Theme.QwenVoiceInput"
             android:permission="android.permission.BIND_INPUT_METHOD">
             <intent-filter>
                 <action android:name="android.view.InputMethod" />

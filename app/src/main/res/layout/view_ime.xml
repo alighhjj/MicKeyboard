@@ -32,12 +32,15 @@
             android:src="@drawable/ic_keyboard" />
     </LinearLayout>
 
-    <com.google.android.material.button.MaterialButton
+    <Button
         android:id="@+id/btn_voice"
         android:layout_width="match_parent"
         android:layout_height="64dp"
         android:layout_marginTop="8dp"
+        android:background="@drawable/bg_ime_voice_button"
         android:text="@string/ime_start"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFFFF"
         android:textSize="16sp"
         android:textStyle="bold" />
 </LinearLayout>

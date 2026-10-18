@@ -155,6 +155,8 @@ qwen-voice-input/
 ## 关键实现说明
 
 - **两种输入方式**：悬浮球走 `AccessibilityService`（任意 App 通用），键盘走 `InputMethodService` 的 `InputConnection`（当前编辑框内更可靠、无需辅助功能），二者共用同一 `AsrController` 会话层
+- **IME 服务主题（关键坑）**：`VoiceInputMethodService` 在 Manifest 中显式声明 `android:theme="@style/Theme.QwenVoiceInput"`——IME 服务上下文默认不是 Material 主题，布局中一旦使用 `MaterialButton` 等 Material 组件，inflate 时会触发 `ThemeEnforcement.checkMaterialTheme()` 校验失败抛 `IllegalArgumentException`，导致进程反复崩溃、键盘永远不弹出。本项目的键盘布局只使用**框架控件 + 自绘背景**（`bg_ime_voice_button`），且 `onCreateInputView()` 内置**纯代码兜底视图**，三重保证键盘在任何系统上都能正常显示
+- **IME 的 method.xml 不要写 settingsActivity**：该值必须是完整组件名，而 debug 构建 applicationId 带 `.debug` 后缀，写死 `com.qwen.voiceinput.MainActivity` 会导致系统解析不到组件、整个输入法不被识别（`ime enable` 报 "Unknown input method"）
 - **流式直接输入**（悬浮球模式）：`StreamTextWriter` 在会话开始时记录输入框已有文本与光标位置作为基准，每次增量到达时写入「基准前半 + 实时增量 + 基准后半」并用 `ACTION_SET_SELECTION` 保持光标位于增量末尾；每句 `completed` 确认后将基准前移、清空暂存，实现"边说边出字"且不覆盖用户已有内容。读取基准时通过 `isShowingHintText()` 过滤占位提示（hint），避免空输入框的提示文本被拼接到识别结果前
 - **流式键盘写入**（键盘模式）：用 `deleteSurroundingText` 回退上一段增量再 `commitText` 写新增量，结束会话时 `sendDefaultEditorAction` 触发发送
 - **一次性填入**（面板模式）：`findFocus(FOCUS_INPUT)` 定位当前焦点可编辑节点，按优先级尝试 `ACTION_PASTE`（保留光标位置）→ 游标合并 `ACTION_SET_TEXT` → 末尾追加，三级回退保证兼容性

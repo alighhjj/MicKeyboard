@@ -2,9 +2,14 @@ package com.qwen.voiceinput.ime
 
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.qwen.voiceinput.R
@@ -36,6 +41,11 @@ class VoiceInputMethodService : InputMethodService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private var binding: ViewImeBinding? = null
+
+    /** inflate 失败时的纯代码兜底控件，保证键盘一定能显示 */
+    private var fallbackButton: Button? = null
+    private var fallbackStatus: TextView? = null
+
     private var controller: AsrController? = null
     private var collectJob: Job? = null
 
@@ -50,12 +60,51 @@ class VoiceInputMethodService : InputMethodService() {
     }
 
     override fun onCreateInputView(): View {
-        val b = ViewImeBinding.inflate(layoutInflater)
-        binding = b
-        b.btnVoice.setOnClickListener { toggle() }
-        b.btnSwitchIme.setOnClickListener { switchToOtherIme() }
-        resetUi()
-        return b.root
+        return try {
+            val b = ViewImeBinding.inflate(layoutInflater)
+            binding = b
+            b.btnVoice.setOnClickListener { toggle() }
+            b.btnSwitchIme.setOnClickListener { switchToOtherIme() }
+            resetUi()
+            b.root
+        } catch (e: Exception) {
+            // 布局 inflate 异常（如主题不兼容）时不能抛出，否则系统直接跳过整个键盘
+            Log.e(TAG, "inflate input view failed, using fallback", e)
+            binding = null
+            buildFallbackView()
+        }
+    }
+
+    /** 纯代码构造的兜底键盘视图：只含框架控件，与服务上下文主题无关 */
+    private fun buildFallbackView(): View {
+        fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(0xFF1F2430.toInt())
+            setPadding(dp(12), dp(8), dp(12), dp(12))
+        }
+        fallbackStatus = TextView(this).apply {
+            text = getString(R.string.ime_idle_hint)
+            setTextColor(0xFF8A8F99.toInt())
+            textSize = 12f
+        }
+        fallbackButton = Button(this).apply {
+            text = getString(R.string.ime_start)
+            gravity = Gravity.CENTER
+            setBackgroundResource(R.drawable.bg_ime_voice_button)
+            setTextColor(0xFFFFFFFF.toInt())
+            textSize = 16f
+            setOnClickListener { toggle() }
+        }
+        root.addView(fallbackStatus)
+        root.addView(
+            fallbackButton,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(64)).apply {
+                topMargin = dp(8)
+            }
+        )
+        Log.w(TAG, "fallback input view in use")
+        return root
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
@@ -74,6 +123,8 @@ class VoiceInputMethodService : InputMethodService() {
         controller = null
         scope.cancel()
         binding = null
+        fallbackButton = null
+        fallbackStatus = null
         super.onDestroy()
     }
 
@@ -138,7 +189,7 @@ class VoiceInputMethodService : InputMethodService() {
 
             AsrStatus.LISTENING -> {
                 updateButton(R.string.ime_stop_and_send, enabled = true)
-                binding?.tvStatus?.text = getString(R.string.panel_listening)
+                setStatus(getString(R.string.panel_listening))
             }
 
             AsrStatus.FINALIZING -> updateButton(R.string.ime_finalizing, enabled = false)
@@ -177,15 +228,25 @@ class VoiceInputMethodService : InputMethodService() {
     }
 
     private fun updateButton(textRes: Int, enabled: Boolean) {
-        binding?.btnVoice?.apply {
-            isEnabled = enabled
-            text = getString(textRes)
+        val text = getString(textRes)
+        binding?.btnVoice?.let {
+            it.isEnabled = enabled
+            it.text = text
         }
+        fallbackButton?.let {
+            it.isEnabled = enabled
+            it.text = text
+        }
+    }
+
+    private fun setStatus(text: String) {
+        binding?.tvStatus?.text = text
+        fallbackStatus?.text = text
     }
 
     private fun resetUi() {
         updateButton(R.string.ime_start, enabled = true)
-        binding?.tvStatus?.text = getString(R.string.ime_idle_hint)
+        setStatus(getString(R.string.ime_idle_hint))
     }
 
     // ---------------- 工具 ----------------
@@ -195,6 +256,8 @@ class VoiceInputMethodService : InputMethodService() {
     }
 
     companion object {
+        private const val TAG = "MicKeyboardIME"
+
         /** 输入法是否已在系统中启用 */
         fun isEnabled(context: android.content.Context): Boolean {
             val imm = context.getSystemService(InputMethodManager::class.java) ?: return false

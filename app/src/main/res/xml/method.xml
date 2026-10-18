@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  注意：不要在此声明 android:settingsActivity。
+  该值必须是完整组件名，而 debug 构建 applicationId 带 .debug 后缀，
+  系统解析不到对应组件时会跳过整个输入法（表现为 "Unknown input method"）。
+-->
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
-    android:settingsActivity="com.qwen.voiceinput.MainActivity"
     android:supportsSwitchingToNextInputMethod="true">
     <subtype
         android:label="@string/ime_subtype_label"
