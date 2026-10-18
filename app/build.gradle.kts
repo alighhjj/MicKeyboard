@@ -30,6 +30,7 @@ android {
                 storePassword = props.getProperty("storePassword")
                 keyAlias = props.getProperty("keyAlias")
                 keyPassword = props.getProperty("keyPassword")
+                storeType = props.getProperty("storeType", "JKS")
             }
         }
     }
