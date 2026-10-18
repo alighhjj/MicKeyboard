@@ -76,7 +76,7 @@ class SettingsRepository(context: Context) {
     companion object {
         const val DEFAULT_MODEL = "qwen3-asr-flash-realtime"
         const val DEFAULT_ENDPOINT = "wss://dashscope.aliyuncs.com/api-ws/v1/realtime"
-        const val DEFAULT_BUBBLE_COLOR = 0xFF4F8CFF.toInt()
+        const val DEFAULT_BUBBLE_COLOR = 0xFFFF8D1A.toInt()
 
         private const val KEY_API_KEY = "api_key"
         private const val KEY_MODEL = "model"

@@ -47,7 +47,7 @@
             android:background="@drawable/bg_ime_voice_button"
             android:text="@string/ime_start"
             android:textAllCaps="false"
-            android:textColor="#FFFFFFFF"
+            android:textColor="@color/on_brand"
             android:textSize="16sp"
             android:textStyle="bold" />
 

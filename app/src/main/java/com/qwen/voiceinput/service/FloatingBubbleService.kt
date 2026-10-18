@@ -645,15 +645,27 @@ class FloatingBubbleService : Service() {
     private fun applyBubbleStyle() {
         val v = bubbleView ?: return
         val base = settings.bubbleColor
-        val color = Color.argb(
-            (settings.bubbleAlpha * 255).toInt().coerceIn(0, 255),
-            Color.red(base),
-            Color.green(base),
-            Color.blue(base)
-        )
+        val alpha = (settings.bubbleAlpha * 255).toInt().coerceIn(0, 255)
+        val isBrand = base == SettingsRepository.DEFAULT_BUBBLE_COLOR
         v.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(color)
+            if (isBrand) {
+                // 默认品牌色：黄橙渐变（与图标一致的品牌视觉）
+                colors = intArrayOf(
+                    Color.argb(alpha, 0xFF, 0xC3, 0x00),
+                    Color.argb(alpha, 0xFF, 0x8D, 0x1A)
+                )
+                orientation = GradientDrawable.Orientation.TL_BR
+            } else {
+                setColor(
+                    Color.argb(
+                        alpha,
+                        Color.red(base),
+                        Color.green(base),
+                        Color.blue(base)
+                    )
+                )
+            }
             setStroke(dp(1), 0x66FFFFFF)
         }
     }
@@ -666,7 +678,7 @@ class FloatingBubbleService : Service() {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = dp(16).toFloat()
             setColor(Color.argb(alpha, 0x1F, 0x24, 0x30))
-            setStroke(dp(1), 0x33FFFFFF)
+            setStroke(dp(1), 0x40FFC300)
         }
     }
 

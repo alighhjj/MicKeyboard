@@ -110,7 +110,7 @@ class VoiceInputMethodService : InputMethodService() {
             text = getString(R.string.ime_start)
             gravity = Gravity.CENTER
             setBackgroundResource(R.drawable.bg_ime_voice_button)
-            setTextColor(0xFFFFFFFF.toInt())
+            setTextColor(0xFF1F2430.toInt())
             textSize = 16f
             setOnClickListener { toggle() }
         }

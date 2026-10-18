@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- IME 主按钮背景：纯框架 ShapeDrawable，避免服务上下文对 Material 主题的依赖 -->
+<!-- IME 主按钮背景：品牌黄橙渐变 + ripple。
+     纯框架资源（selector/ripple/shape/gradient），不依赖服务上下文主题。 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_pressed="true">
-        <shape android:shape="rectangle">
-            <corners android:radius="32dp" />
-            <solid android:color="#FF3A6FD8" />
-        </shape>
-    </item>
     <item android:state_enabled="false">
         <shape android:shape="rectangle">
             <corners android:radius="32dp" />
@@ -14,9 +9,17 @@
         </shape>
     </item>
     <item>
-        <shape android:shape="rectangle">
-            <corners android:radius="32dp" />
-            <solid android:color="#FF4F8CFF" />
-        </shape>
+        <ripple android:color="#33000000">
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="32dp" />
+                    <gradient
+                        android:angle="315"
+                        android:endColor="@color/brand_gradient_end"
+                        android:startColor="@color/brand_gradient_start"
+                        android:type="linear" />
+                </shape>
+            </item>
+        </ripple>
     </item>
 </selector>
