@@ -9,6 +9,8 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -46,6 +48,8 @@ class VoiceInputMethodService : InputMethodService() {
 
     /** inflate 失败时的纯代码兜底控件，保证键盘一定能显示 */
     private var fallbackButton: Button? = null
+    private var fallbackSend: ImageButton? = null
+    private var fallbackBackspace: ImageButton? = null
     private var fallbackStatus: TextView? = null
 
     private var controller: AsrController? = null
@@ -70,6 +74,8 @@ class VoiceInputMethodService : InputMethodService() {
             binding = b
             b.btnVoice.setOnClickListener { toggle() }
             b.btnSwitchIme.setOnClickListener { switchToOtherIme() }
+            b.btnSend.setOnClickListener { performSend() }
+            b.btnBackspace.setOnClickListener { backspace() }
             resetUi()
             b.root
         } catch (e: Exception) {
@@ -101,13 +107,45 @@ class VoiceInputMethodService : InputMethodService() {
             textSize = 16f
             setOnClickListener { toggle() }
         }
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        val lpVoice = LinearLayout.LayoutParams(0, dp(64)).apply { weight = 1f }
+        val lpIcon = LinearLayout.LayoutParams(dp(56), dp(64))
+        fallbackButton?.let { row.addView(it, lpVoice) }
+        fallbackSend = ImageButton(this).apply {
+            setBackgroundResource(R.drawable.bg_ime_secondary_button)
+            setImageResource(R.drawable.ic_send)
+            val p = dp(18)
+            setPadding(p, p, p, p)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = getString(R.string.ime_send)
+            setOnClickListener { performSend() }
+        }
+        fallbackBackspace = ImageButton(this).apply {
+            setBackgroundResource(R.drawable.bg_ime_secondary_button)
+            setImageResource(R.drawable.ic_backspace)
+            val p = dp(18)
+            setPadding(p, p, p, p)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = getString(R.string.ime_backspace)
+            setOnClickListener { backspace() }
+        }
+        lpIcon.marginStart = dp(8)
+        row.addView(fallbackSend, lpIcon)
+        row.addView(fallbackBackspace, LinearLayout.LayoutParams(dp(56), dp(64)).apply {
+            marginStart = dp(8)
+        })
         root.addView(fallbackStatus)
-        root.addView(
-            fallbackButton,
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(64)).apply {
-                topMargin = dp(8)
-            }
-        )
+        val rowLp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = dp(8) }
+        root.addView(row, rowLp)
         Log.w(TAG, "fallback input view in use")
         return root
     }
@@ -129,6 +167,8 @@ class VoiceInputMethodService : InputMethodService() {
         scope.cancel()
         binding = null
         fallbackButton = null
+        fallbackSend = null
+        fallbackBackspace = null
         fallbackStatus = null
         super.onDestroy()
     }
@@ -189,6 +229,22 @@ class VoiceInputMethodService : InputMethodService() {
             resetUi()
         }
         updateButton(R.string.ime_finalizing, enabled = false)
+    }
+
+    /**
+     * 退格删除：发送真实 DEL 键事件（按下+抬起），
+     * EditText 会正确处理 composition 中的文本与选区删除。
+     */
+    private fun backspace() {
+        try {
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+        } catch (_: Exception) {
+            // 兜底：直接删除光标前一个字符
+            try {
+                currentInputConnection?.deleteSurroundingText(1, 0)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     /**

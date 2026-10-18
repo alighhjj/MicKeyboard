@@ -3,7 +3,7 @@
 基于阿里云 DashScope **Qwen3-ASR-Flash-Realtime** 模型的 Android 全局语音输入 APK，提供两种**可同时启用**的输入方式：
 
 - **悬浮球模式**：屏幕边缘可拖动麦克风悬浮球，点击即开始/结束识别，识别文字边说边直接写入当前输入框
-- **键盘模式**：系统输入法，键盘上只有一个大按钮，点击开始识别、再点一次结束并发送文本（类 Gboard 语音输入体验）
+- **键盘模式**：系统输入法，三按钮键盘——左键语音 toggle（开始/停止并发送）、中键发送（回车）、右键退格删除（类 Gboard 语音输入体验）
 
 识别文字**实时逐字写入输入框**（微信、QQ、浏览器、备忘录……任何 App 均可），全程无需切换界面。应用图标为「键盘外轮廓 + 麦克风」。
 
@@ -14,7 +14,7 @@
 | 功能 | 说明 |
 |------|------|
 | 悬浮球快速激活 | 屏幕边缘可拖动麦克风悬浮球，点击即开始/结束识别，聆听时有脉冲动画 |
-| 键盘输入法模式 | 系统输入法，单按钮 toggle：开始识别 → 再点结束并发送；流式写入当前编辑框，可开关「自动发送」 |
+| 键盘输入法模式 | 系统输入法，三按钮键盘：左键语音 toggle（开始 → 停止并发送）、中键发送（回车）、右键退格；流式写入当前编辑框，可开关「自动发送」 |
 | 文字直接输入（默认） | 增量文本**实时写入当前焦点输入框光标处**（边说边出字），无聆听窗口、无需切换 App |
 | 可选聆听面板 | 设置中可开启聆听面板：浮动小窗实时显示增量文本、音量条与已确认文本 |
 | 悬浮窗外观自定义 | 悬浮球 / 面板**透明度**（30%~100%）与 6 种**主题配色**实时可调，切换即时生效 |
@@ -61,8 +61,11 @@ App (AudioRecord 16kHz PCM16)
 ### 4. 键盘模式（输入法）
 
 1. 按上方说明启用 MicKeyboard 输入法并在输入框切换到它
-2. 键盘上只有**一个麦克风大按钮**：点击开始说话，文字**实时逐字写入当前编辑框**，按钮脉冲表示聆听中
-3. **再次点击按钮结束识别并发送文本**（发送行为由设置中「结束识别后自动发送」控制，默认开）；也可点右上角图标快速切换回系统键盘
+2. 键盘为**三按钮排布**（总高 64dp）：
+   - **左：麦克风大按钮**（占主要宽度）——点击开始说话，文字**实时逐字写入当前编辑框**，按钮脉冲表示聆听中；**再次点击结束识别并发送文本**（发送行为由设置中「结束识别后自动发送」控制，默认开）
+   - **中：发送键**（纸飞机图标）——模拟回车提交，等价于系统键盘的回车：输入框声明了 EditorAction（发送/搜索/前往）走 `sendDefaultEditorAction`，无 action 的输入框发送真实回车键事件
+   - **右：退格删除键**——发送真实 DEL 键事件删除光标前一个字符（正确处理 composition 与选区，删除失败时降级 `deleteSurroundingText`）
+3. 也可点右上角图标快速切换回系统键盘
 4. 切换输入框时键盘自动收起初识别的残留文本，不会串输入
 
 ### 5. 悬浮窗外观
@@ -161,6 +164,7 @@ qwen-voice-input/
 - **IME 服务主题（关键坑）**：`VoiceInputMethodService` 在 Manifest 中显式声明 `android:theme="@style/Theme.QwenVoiceInput"`——IME 服务上下文默认不是 Material 主题，布局中一旦使用 `MaterialButton` 等 Material 组件，inflate 时会触发 `ThemeEnforcement.checkMaterialTheme()` 校验失败抛 `IllegalArgumentException`，导致进程反复崩溃、键盘永远不弹出。本项目的键盘布局只使用**框架控件 + 自绘背景**（`bg_ime_voice_button`），且 `onCreateInputView()` 内置**纯代码兜底视图**，三重保证键盘在任何系统上都能正常显示
 - **IME 的 method.xml 不要写 settingsActivity**：该值必须是完整组件名，而 debug 构建 applicationId 带 `.debug` 后缀，写死 `com.qwen.voiceinput.MainActivity` 会导致系统解析不到组件、整个输入法不被识别（`ime enable` 报 "Unknown input method"）
 - **流式直接输入**（悬浮球模式）：`StreamTextWriter` 在会话开始时记录输入框已有文本与光标位置作为基准，每次增量到达时写入「基准前半 + 实时增量 + 基准后半」并用 `ACTION_SET_SELECTION` 保持光标位于增量末尾；每句 `completed` 确认后将基准前移、清空暂存，实现"边说边出字"且不覆盖用户已有内容。读取基准时通过 `isShowingHintText()` 过滤占位提示（hint），避免空输入框的提示文本被拼接到识别结果前
+- **键盘三按钮布局**：左键（`btn_voice`，weight=1）语音 toggle；中键（`btn_send`，56dp 纸飞机）与右键（`btn_backspace`，56dp 退格图标）复用同一套 `performSend()` / `backspace()` 逻辑——`performSend()` 与「停止并发送」的提交完全一致（有 action 发 action、无 action 发真实回车）；`backspace()` 发 `sendDownUpKeyEvents(KEYCODE_DEL)` 真实 DEL 键事件，正确处理 composition 与选区，异常时降级 `deleteSurroundingText(1, 0)`
 - **流式键盘写入**（键盘模式）：用 `deleteSurroundingText` 回退上一段增量再 `commitText` 写新增量，结束会话时 `sendDefaultEditorAction` 触发发送
 - **一次性填入**（面板模式）：`findFocus(FOCUS_INPUT)` 定位当前焦点可编辑节点，按优先级尝试 `ACTION_PASTE`（保留光标位置）→ 游标合并 `ACTION_SET_TEXT` → 末尾追加，三级回退保证兼容性
 - **动态外观**：悬浮球 / 面板背景为运行时构造的 `GradientDrawable`，颜色与透明度改动通过 `ACTION_REFRESH_STYLE` 广播即时刷新，无需重启服务

@@ -18,6 +18,8 @@
     <string name="ime_stop_and_send">■ 停止并发送</string>
     <string name="ime_finalizing">识别中…</string>
     <string name="ime_idle_hint">点击按钮开始语音输入</string>
+    <string name="ime_send">发送</string>
+    <string name="ime_backspace">退格删除</string>
     <string name="ime_switch">切换键盘</string>
     <string name="ime_need_mic">麦克风权限未授予，请打开 MicKeyboard 完成一次识别测试</string>
 
