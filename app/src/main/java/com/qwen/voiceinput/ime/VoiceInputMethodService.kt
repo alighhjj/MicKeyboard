@@ -360,23 +360,49 @@ class VoiceInputMethodService : InputMethodService() {
 
         val ic = currentInputConnection ?: return
 
-        // 1) 增量文本：删除上次暂存后重新提交
+        // 1) 确认文本：先提交已断句的结果。
+        //    必须排在 interim 之前——同一帧里 finals 与 interim 可能同时变化，
+        //    若先写 interim，随后的删除动作会把刚写进去的暂存区一并吃掉，
+        //    导致 lastInterim 与输入框实际内容脱节。
+        while (committedFinals < s.finals.size) {
+            dropPendingInterim(ic)
+            ic.commitText(s.finals[committedFinals], 1)
+            committedFinals++
+            lastInterim = ""
+        }
+
+        // 2) 增量文本：先校验光标前确实是上次写入的暂存区，再删除重写。
+        //    部分输入框（微信/WebView/自定义编辑控件）会自行移动光标或不支持
+        //    deleteSurroundingText，盲删会把前面已确认的整句删掉，表现为
+        //    「新一句覆盖已识别文字」。校验失败时改为只追加，保住已有文字。
         if (s.interim != lastInterim) {
-            if (pendingInterimLen > 0) ic.deleteSurroundingText(pendingInterimLen, 0)
+            dropPendingInterim(ic)
             if (s.interim.isNotEmpty()) ic.commitText(s.interim, 1)
             pendingInterimLen = s.interim.length
             lastInterim = s.interim
         }
+    }
 
-        // 2) 确认文本：替换暂存后逐句提交
-        while (committedFinals < s.finals.size) {
-            if (pendingInterimLen > 0) {
-                ic.deleteSurroundingText(pendingInterimLen, 0)
-                pendingInterimLen = 0
-            }
-            ic.commitText(s.finals[committedFinals], 1)
-            committedFinals++
+    /**
+     * 移除上一帧写入的暂存文本。
+     * 删除前用 getTextBeforeCursor 核对光标前内容是否与记录一致；
+     * 不一致说明光标已被输入框移动（或该控件根本不支持回删），
+     * 此时宁可留下重复也不删除，避免误伤已确认的文字。
+     */
+    private fun dropPendingInterim(ic: android.view.inputmethod.InputConnection) {
+        if (pendingInterimLen <= 0) {
+            pendingInterimLen = 0
+            return
         }
+        val before = try {
+            ic.getTextBeforeCursor(pendingInterimLen, 0)?.toString()
+        } catch (_: Exception) {
+            null
+        }
+        if (before != null && before == lastInterim) {
+            ic.deleteSurroundingText(pendingInterimLen, 0)
+        }
+        pendingInterimLen = 0
     }
 
     private fun updateButton(textRes: Int, enabled: Boolean) {
