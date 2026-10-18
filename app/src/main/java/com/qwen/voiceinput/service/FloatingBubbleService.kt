@@ -447,7 +447,9 @@ class FloatingBubbleService : Service() {
     /** 直接输入模式：把增量/确认文本实时写入焦点输入框 */
     private fun handleDirectState(s: AsrState) {
         val writer = streamWriter
-        if (writer != null) {
+        // IDLE 为 completeStop 重置态：此时 stop 回调尚未取消 collect（竞态），
+        // 绝不能因空 interim 触发清理而删掉输入框内已识别的文字
+        if (writer != null && s.status != AsrStatus.IDLE) {
             while (committedFinals < s.finals.size) {
                 writer.commitFinal(s.finals[committedFinals])
                 committedFinals++

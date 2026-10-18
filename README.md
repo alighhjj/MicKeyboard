@@ -156,6 +156,7 @@ qwen-voice-input/
 
 - **两种输入方式**：悬浮球走 `AccessibilityService`（任意 App 通用），键盘走 `InputMethodService` 的 `InputConnection`（当前编辑框内更可靠、无需辅助功能），二者共用同一 `AsrController` 会话层
 - **停止回调的线程模型（关键坑）**：`session.finished` 事件在 OkHttp reader 线程到达，`AsrController.completeStop()` 中的 `pendingResult` 回调统一 `launch(Dispatchers.Main)` 切回主线程——否则 IME/面板在回调里 `setText()`/`toast()` 会抛 `CalledFromWrongThreadException`，表现为按钮卡在「识别中」、界面不恢复
+- **停止时的状态重置竞态（关键坑）**：`completeStop()` 重置 `_state` 为空状态是同步 emit，会先于 stop 回调（主线程排队）到达两个流式写入端的 collector。因此 IME 与悬浮球的直接输入模式在 `AsrStatus.IDLE` 时**一律不再触碰输入框文本**——否则 `deleteSurroundingText` 会把停止瞬间仍留在框内的实时增量删掉，表现为「文字被清空、发送为空」
 - **键盘模式的提交语义**：结束识别时，输入框声明了 EditorAction（发送/搜索/前往）走 `sendDefaultEditorAction`；无 action 的输入框（浏览器地址栏、搜索框、多数聊天输入框）发送真实回车键事件（`sendDownUpKeyEvents(KEYCODE_ENTER)`，ACTION_DOWN+UP 走按键通路）。注意：微信/QQ 的发送按钮是 App 内部控件，软键盘无法直接触发（回车在其多行输入框中表现为换行）
 - **IME 服务主题（关键坑）**：`VoiceInputMethodService` 在 Manifest 中显式声明 `android:theme="@style/Theme.QwenVoiceInput"`——IME 服务上下文默认不是 Material 主题，布局中一旦使用 `MaterialButton` 等 Material 组件，inflate 时会触发 `ThemeEnforcement.checkMaterialTheme()` 校验失败抛 `IllegalArgumentException`，导致进程反复崩溃、键盘永远不弹出。本项目的键盘布局只使用**框架控件 + 自绘背景**（`bg_ime_voice_button`），且 `onCreateInputView()` 内置**纯代码兜底视图**，三重保证键盘在任何系统上都能正常显示
 - **IME 的 method.xml 不要写 settingsActivity**：该值必须是完整组件名，而 debug 构建 applicationId 带 `.debug` 后缀，写死 `com.qwen.voiceinput.MainActivity` 会导致系统解析不到组件、整个输入法不被识别（`ime enable` 报 "Unknown input method"）

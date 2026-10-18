@@ -248,6 +248,12 @@ class VoiceInputMethodService : InputMethodService() {
             AsrStatus.IDLE -> Unit
         }
 
+        // 会话已完全结束（completeStop 重置出的空状态）：绝不再触碰输入框文本。
+        // stop 回调（内含 collectJob.cancel）在 _state 重置之后才排到主线程执行，
+        // 若不拦截，这里会把刚停止时仍留在框内的实时增量 deleteSurroundingText 删掉，
+        // 导致「文字被清空且发送为空」。
+        if (s.status == AsrStatus.IDLE) return
+
         val ic = currentInputConnection ?: return
 
         // 1) 增量文本：删除上次暂存后重新提交
