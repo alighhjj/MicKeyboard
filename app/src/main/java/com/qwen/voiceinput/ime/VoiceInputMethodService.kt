@@ -110,7 +110,8 @@ class VoiceInputMethodService : InputMethodService() {
             text = getString(R.string.ime_start)
             gravity = Gravity.CENTER
             setBackgroundResource(R.drawable.bg_ime_voice_button)
-            setTextColor(0xFF1F2430.toInt())
+            // 黑底渐变按钮：白字保证可读性
+            setTextColor(0xFFFFFFFF.toInt())
             textSize = 16f
             setOnClickListener { toggle() }
         }
@@ -334,7 +335,7 @@ class VoiceInputMethodService : InputMethodService() {
 
             AsrStatus.LISTENING -> {
                 updateButton(R.string.ime_stop, enabled = true)
-                setStatus(getString(R.string.panel_listening))
+                setStatus(getString(R.string.wave_listening))
             }
 
             AsrStatus.FINALIZING -> updateButton(R.string.ime_finalizing, enabled = false)
@@ -345,7 +346,7 @@ class VoiceInputMethodService : InputMethodService() {
                 collectJob?.cancel()
                 collectJob = null
                 resetUi()
-                toast(s.errorMessage ?: getString(R.string.panel_error))
+                toast(s.errorMessage ?: getString(R.string.wave_error))
             }
 
             AsrStatus.IDLE -> Unit

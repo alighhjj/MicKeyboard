@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 横向声波输入框：点击悬浮球后弹出（对齐主流语音输入工具的悬浮球交互）。
+     左：音量波形动画；中：实时识别文字；右：停止按钮。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="72dp"
+    android:background="@drawable/bg_wave_bar"
+    android:elevation="8dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="18dp"
+    android:paddingEnd="12dp">
+
+    <!-- 音量波形：5 根竖条，由 FloatingBubbleService 按 audioLevel 驱动 scaleY -->
+    <LinearLayout
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <View
+            android:id="@+id/wave_1"
+            android:layout_width="3dp"
+            android:layout_height="18dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/bg_wave_bar_item" />
+
+        <View
+            android:id="@+id/wave_2"
+            android:layout_width="3dp"
+            android:layout_height="18dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/bg_wave_bar_item" />
+
+        <View
+            android:id="@+id/wave_3"
+            android:layout_width="3dp"
+            android:layout_height="18dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/bg_wave_bar_item" />
+
+        <View
+            android:id="@+id/wave_4"
+            android:layout_width="3dp"
+            android:layout_height="18dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/bg_wave_bar_item" />
+
+        <View
+            android:id="@+id/wave_5"
+            android:layout_width="3dp"
+            android:layout_height="18dp"
+            android:background="@drawable/bg_wave_bar_item" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_wave_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="@string/wave_listening"
+        android:textColor="#FFE8E9ED"
+        android:textSize="15sp" />
+
+    <ImageView
+        android:id="@+id/btn_wave_stop"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_stop_button"
+        android:contentDescription="@string/wave_stop_desc"
+        android:padding="10dp"
+        android:src="@drawable/ic_stop_black" />
+</LinearLayout>

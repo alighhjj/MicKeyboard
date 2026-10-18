@@ -8,15 +8,15 @@
     <path
         android:fillColor="#00000000"
         android:pathData="M4,6 A2,2 0 0 1 6,4 L18,4 A2,2 0 0 1 20,6 L20,18 A2,2 0 0 1 18,20 L6,20 A2,2 0 0 1 4,18 Z"
-        android:strokeColor="#FFE65100"
+        android:strokeColor="#FF1F2430"
         android:strokeWidth="1.8" />
     <path
-        android:fillColor="#FFE65100"
+        android:fillColor="#FF1F2430"
         android:pathData="M7,8.5 A1.2,1.2 0 1 0 7,10.9 A1.2,1.2 0 1 0 7,8.5 Z M11,8.5 A1.2,1.2 0 1 0 11,10.9 A1.2,1.2 0 1 0 11,8.5 Z M15,8.5 A1.2,1.2 0 1 0 15,10.9 A1.2,1.2 0 1 0 15,8.5 Z M7,12.5 A1.2,1.2 0 1 0 7,14.9 A1.2,1.2 0 1 0 7,12.5 Z M11,12.5 A1.2,1.2 0 1 0 11,14.9 A1.2,1.2 0 1 0 11,12.5 Z" />
     <path
         android:fillColor="#00000000"
         android:pathData="M15,12.5 L17,12.5 M7,16.8 L17,16.8"
-        android:strokeColor="#FFE65100"
+        android:strokeColor="#FF1F2430"
         android:strokeLineCap="round"
         android:strokeWidth="1.8" />
 </vector>

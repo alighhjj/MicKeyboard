@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- IME 主按钮背景：品牌黄橙渐变 + ripple。
+<!-- IME 主按钮背景：品牌黑色渐变 + ripple。
      纯框架资源（selector/ripple/shape/gradient），不依赖服务上下文主题。 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_enabled="false">
         <shape android:shape="rectangle">
             <corners android:radius="32dp" />
-            <solid android:color="#FF3A4252" />
+            <solid android:color="#FF23262C" />
         </shape>
     </item>
     <item>
-        <ripple android:color="#33000000">
+        <ripple android:color="#33FFFFFF">
             <item>
                 <shape android:shape="rectangle">
                     <corners android:radius="32dp" />

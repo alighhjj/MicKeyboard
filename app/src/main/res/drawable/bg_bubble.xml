@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 悬浮球背景：品牌黄橙渐变（FloatingBubbleService 会按设置动态重建，
+<!-- 悬浮球背景：品牌黑色渐变（FloatingBubbleService 会按设置动态重建，
      此处为布局初始态与主题色默认值） -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">

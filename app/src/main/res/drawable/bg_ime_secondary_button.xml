@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- IME 次级按钮（发送/退格）背景：暖调深灰 + ripple，与品牌渐变主按钮协调。
+<!-- IME 次级按钮（发送/退格）背景：深灰黑 + ripple，与品牌渐变主按钮协调。
      纯框架资源，不依赖服务上下文主题。 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
-        <ripple android:color="#33FFC300">
+        <ripple android:color="#33FFFFFF">
             <item>
                 <shape android:shape="rectangle">
                     <corners android:radius="16dp" />
-                    <solid android:color="#FF3A3428" />
+                    <solid android:color="#FF23262C" />
                 </shape>
             </item>
         </ripple>

@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 品牌主按钮背景：黄橙渐变（纯框架 selector，pressed 变亮、disabled 深灰） -->
+<!-- 品牌主按钮背景：黑色渐变（纯框架 selector，pressed 变亮、disabled 深灰） -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
             <corners android:radius="24dp" />
             <gradient
                 android:angle="315"
-                android:endColor="#FFFFB300"
-                android:startColor="#FFFFD54F"
+                android:endColor="#FF23262C"
+                android:startColor="#FF3A3F47"
                 android:type="linear" />
         </shape>
     </item>
     <item android:state_enabled="false">
         <shape android:shape="rectangle">
             <corners android:radius="24dp" />
-            <solid android:color="#FF3A4252" />
+            <solid android:color="#FF23262C" />
         </shape>
     </item>
     <item>

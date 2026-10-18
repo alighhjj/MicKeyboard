@@ -114,8 +114,6 @@ class MainActivity : AppCompatActivity() {
         )
         binding.etVadThreshold.setText(settings.vadThreshold.toString())
         binding.etVadSilence.setText(settings.vadSilenceMs.toString())
-        binding.swAutoInsert.isChecked = settings.autoInsert
-        binding.swShowPanel.isChecked = settings.showPanel
     }
 
     private fun saveSettings() {
@@ -128,8 +126,16 @@ class MainActivity : AppCompatActivity() {
             .getOrElse(langPos) { "zh" }
         settings.vadThreshold = binding.etVadThreshold.text?.toString()?.toFloatOrNull() ?: 0.2f
         settings.vadSilenceMs = binding.etVadSilence.text?.toString()?.toIntOrNull() ?: 800
-        settings.autoInsert = binding.swAutoInsert.isChecked
-        settings.showPanel = binding.swShowPanel.isChecked
+    }
+
+    /** 悬浮窗外观变更即时生效：立即通知运行中的悬浮球服务刷新样式，无需重新启用 */
+    private fun refreshBubbleStyleNow() {
+        if (FloatingBubbleService.isRunning) {
+            startService(
+                Intent(this, FloatingBubbleService::class.java)
+                    .setAction(FloatingBubbleService.ACTION_REFRESH_STYLE)
+            )
+        }
     }
 
     // ---------------- 按钮与权限 ----------------
@@ -201,6 +207,8 @@ class MainActivity : AppCompatActivity() {
                 setOnClickListener {
                     settings.bubbleColor = color
                     refreshColorChips()
+                    // 颜色即时生效：不等退出界面，立刻刷新悬浮球与声波框
+                    refreshBubbleStyleNow()
                 }
             }
             binding.colorChips.addView(chip)
@@ -212,18 +220,8 @@ class MainActivity : AppCompatActivity() {
             object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     settings.bubbleAlpha = progressToAlpha(progress)
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            }
-        )
-
-        binding.seekPanelAlpha.progress = alphaToProgress(settings.panelAlpha)
-        binding.seekPanelAlpha.setOnSeekBarChangeListener(
-            object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    settings.panelAlpha = progressToAlpha(progress)
+                    // 透明度即时生效
+                    refreshBubbleStyleNow()
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -368,10 +366,10 @@ class MainActivity : AppCompatActivity() {
     private fun renderTest(s: AsrState) {
         binding.tvTestStatus.setText(
             when (s.status) {
-                AsrStatus.CONNECTING -> R.string.panel_connecting
-                AsrStatus.LISTENING -> R.string.panel_listening
-                AsrStatus.FINALIZING -> R.string.panel_finalizing
-                AsrStatus.ERROR -> R.string.panel_error
+                AsrStatus.CONNECTING -> R.string.wave_connecting
+                AsrStatus.LISTENING -> R.string.wave_listening
+                AsrStatus.FINALIZING -> R.string.wave_finalizing
+                AsrStatus.ERROR -> R.string.wave_error
                 AsrStatus.IDLE -> R.string.test_idle
             }
         )

@@ -2,13 +2,13 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <!-- 品牌色系：黄橙渐变（语音输入"快"的意象），与主流语音输入法的明亮品牌策略一致 -->
-    <color name="brand_gradient_start">#FFFFC300</color>
-    <color name="brand_gradient_end">#FFFF8D1A</color>
-    <color name="brand_500">#FFFF8D1A</color>
-    <color name="brand_700">#FFF57C00</color>
+    <!-- 品牌色系：黑色渐变（沉稳专业的语音输入工具意象），替代原黄橙品牌色 -->
+    <color name="brand_gradient_start">#FF2E3238</color>
+    <color name="brand_gradient_end">#FF0B0D10</color>
+    <color name="brand_500">#FF1F2430</color>
+    <color name="brand_700">#FF0A0C0F</color>
     <!-- 图标兜底底色（adaptive icon 背景实际使用 bg_launcher_gradient 渐变） -->
-    <color name="ic_launcher_background">#FFFF8D1A</color>
-    <!-- 品牌色表面上的前景色（键盘主按钮文字等） -->
-    <color name="on_brand">#FF1F2430</color>
+    <color name="ic_launcher_background">#FF0B0D10</color>
+    <!-- 品牌色表面上的前景色（键盘主按钮文字等，黑底白字） -->
+    <color name="on_brand">#FFFFFFFF</color>
 </resources>

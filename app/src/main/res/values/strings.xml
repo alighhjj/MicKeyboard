@@ -28,14 +28,18 @@
     <string name="language_label">识别语言</string>
     <string name="vad_threshold_hint">VAD 阈值（0~1，越低越灵敏，默认 0.2）</string>
     <string name="vad_silence_hint">静音断句时长（毫秒，默认 800）</string>
-    <string name="auto_insert_label">停止说话后自动填入输入框（仅面板模式）</string>
-    <string name="setting_show_panel">显示聆听面板</string>
 
     <!-- 悬浮窗外观 -->
     <string name="section_appearance">悬浮窗外观</string>
     <string name="bubble_color_label">悬浮球颜色</string>
     <string name="bubble_alpha_label">悬浮球透明度</string>
-    <string name="panel_alpha_label">聆听面板透明度（面板模式生效）</string>
+
+    <!-- 横向声波框（点击悬浮球弹出） -->
+    <string name="wave_connecting">连接中…</string>
+    <string name="wave_listening">聆听中，请说话…</string>
+    <string name="wave_finalizing">识别中…</string>
+    <string name="wave_error">识别出错</string>
+    <string name="wave_stop_desc">停止识别</string>
 
     <!-- 直接输入模式提示 -->
     <string name="direct_listening">聆听中，说话内容将直接输入…</string>
@@ -63,16 +67,6 @@
 
     <string name="perm_granted">已开启</string>
     <string name="perm_missing">未开启</string>
-
-    <!-- 悬浮面板 -->
-    <string name="panel_connecting">连接中…</string>
-    <string name="panel_listening">聆听中，请说话…</string>
-    <string name="panel_finalizing">识别中…</string>
-    <string name="panel_stopped">已停止，点击「完成并填入」</string>
-    <string name="panel_error">识别出错</string>
-    <string name="finish_and_insert">✓ 完成并填入</string>
-    <string name="cancel">取消</string>
-    <string name="retry">重试</string>
 
     <string name="bubble_desc">语音输入悬浮球</string>
 

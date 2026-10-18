@@ -28,7 +28,7 @@
 
     <!-- 悬浮球配色预设 -->
     <string-array name="bubble_color_labels">
-        <item>闪电橙</item>
+        <item>闪电黑</item>
         <item>翠绿</item>
         <item>琥珀橙</item>
         <item>紫罗兰</item>
@@ -36,7 +36,7 @@
         <item>青碧</item>
     </string-array>
     <integer-array name="bubble_color_values">
-        <item>0xFFFF8D1A</item>
+        <item>0xFF0B0D10</item>
         <item>0xFF3AD07A</item>
         <item>0xFFFFB020</item>
         <item>0xFFB36BFF</item>

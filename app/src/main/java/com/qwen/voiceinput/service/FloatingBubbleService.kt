@@ -23,7 +23,6 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
@@ -35,7 +34,7 @@ import com.qwen.voiceinput.asr.AsrController
 import com.qwen.voiceinput.asr.AsrState
 import com.qwen.voiceinput.asr.AsrStatus
 import com.qwen.voiceinput.databinding.ViewBubbleBinding
-import com.qwen.voiceinput.databinding.ViewPanelBinding
+import com.qwen.voiceinput.databinding.ViewWaveBarBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -44,15 +43,17 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.sin
 
 /**
  * 悬浮图标前台服务。
  *
- * 功能：
+ * 功能（对齐主流语音输入工具的悬浮球交互）：
  *  - 常驻屏幕边缘的可拖动悬浮球（麦克风图标），聆听时有脉冲动画
- *  - 点击悬浮球弹出识别面板，实时显示增量文本、音量条与已确认文本
- *  - 再次点击悬浮球（或面板「完成并填入」）→ 结束识别并将文本填入
- *    当前获得焦点的输入框（经 [TextInsertionAccessibilityService]）
+ *  - 点击悬浮球 → 弹出**横向声波输入框**（音量波形 + 实时识别文字 + 停止按钮），
+ *    同时识别文字实时写入当前焦点输入框
+ *  - 再次点击悬浮球（或声波框上的停止按钮）→ 结束识别并收
+ *    起声波框；文字已在识别过程中实时填入输入框
  *  - 通知栏提供停止入口；快捷设置磁贴可一键开关本服务
  */
 class FloatingBubbleService : Service() {
@@ -78,16 +79,16 @@ class FloatingBubbleService : Service() {
     private var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
 
-    private var panelView: View? = null
-    private var panelParams: WindowManager.LayoutParams? = null
-    private var panelBinding: ViewPanelBinding? = null
+    private var waveView: View? = null
+    private var waveParams: WindowManager.LayoutParams? = null
+    private var waveBinding: ViewWaveBarBinding? = null
 
     private var asrController: AsrController? = null
     private var stateCollectJob: Job? = null
     private var pulseAnimator: AnimatorSet? = null
 
-    /** 手动模式下暂存最终文本，等待用户点击填入 */
-    private var pendingText: String = ""
+    /** 声波框空闲呼吸动画（连接中/等待时播放） */
+    private var waveIdleAnimator: ValueAnimator? = null
 
     // ---------------- 生命周期 ----------------
 
@@ -106,7 +107,7 @@ class FloatingBubbleService : Service() {
         if (intent?.action == ACTION_REFRESH_STYLE) {
             // 设置界面改了配色/透明度：即时刷新，不重启服务
             applyBubbleStyle()
-            applyPanelStyle()
+            applyWaveBarStyle()
             return START_STICKY
         }
         val hasOverlay = Settings.canDrawOverlays(this)
@@ -128,7 +129,7 @@ class FloatingBubbleService : Service() {
     override fun onDestroy() {
         cancelRecognition()
         removeBubble()
-        removePanel()
+        removeWaveBar()
         scope.cancel()
         isRunning = false
         super.onDestroy()
@@ -207,6 +208,8 @@ class FloatingBubbleService : Service() {
                         params.x = initialX + dx
                         params.y = initialY + dy
                         updateBubble()
+                        // 拖动时声波框跟随悬浮球水平位置
+                        if (waveView != null) positionWaveBar()
                     }
                     return true
                 }
@@ -229,7 +232,6 @@ class FloatingBubbleService : Service() {
     private fun onBubbleClick() {
         when {
             asrController != null -> finishRecognition()
-            pendingText.isNotBlank() -> insertAndHide(pendingText)
             else -> startRecognition()
         }
     }
@@ -255,6 +257,7 @@ class FloatingBubbleService : Service() {
             addUpdateListener { anim ->
                 p.x = anim.animatedValue as Int
                 updateBubble()
+                if (waveView != null) positionWaveBar()
             }
             start()
         }
@@ -285,60 +288,79 @@ class FloatingBubbleService : Service() {
         bubbleView?.scaleY = 1f
     }
 
-    // ---------------- 识别面板 ----------------
+    // ---------------- 横向声波输入框 ----------------
 
-    private fun addPanel() {
-        if (panelView != null) return
-        val binding = ViewPanelBinding.inflate(LayoutInflater.from(this))
-        panelBinding = binding
-        binding.btnInsert.setOnClickListener { onInsertClick() }
-        binding.btnCancel.setOnClickListener { cancelRecognition() }
-        binding.btnRetry.setOnClickListener { startRecognition() }
-        binding.panelHeader.setOnTouchListener(PanelTouchListener())
+    private fun addWaveBar() {
+        if (waveView != null) return
+        val binding = ViewWaveBarBinding.inflate(LayoutInflater.from(this))
+        waveBinding = binding
+        binding.btnWaveStop.setOnClickListener { finishRecognition() }
+        binding.root.setOnTouchListener(WaveBarTouchListener())
 
         val params = WindowManager.LayoutParams(
-            dp(300),
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            screenWidth - dp(24),
+            dp(72),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            val bubbleX = bubbleParams?.x ?: dp(16)
-            val bubbleY = bubbleParams?.y ?: (screenHeight / 3)
-            x = bubbleX.coerceIn(0, maxOf(0, screenWidth - dp(300)))
-            y = (bubbleY - dp(380)).coerceIn(dp(24), maxOf(dp(24), screenHeight - dp(48)))
         }
         try {
             windowManager.addView(binding.root, params)
         } catch (e: Exception) {
-            Log.e(TAG, "addPanel failed", e)
-            panelBinding = null
+            Log.e(TAG, "addWaveBar failed", e)
+            waveBinding = null
             return
         }
-        panelView = binding.root
-        panelParams = params
-        applyPanelStyle()
+        waveView = binding.root
+        waveParams = params
+        applyWaveBarStyle()
+        positionWaveBar()
+        startWaveIdle()
     }
 
-    private fun removePanel() {
-        panelView?.let { v ->
+    private fun removeWaveBar() {
+        stopWaveIdle()
+        waveView?.let { v ->
             try {
                 windowManager.removeView(v)
             } catch (_: Exception) {
             }
         }
-        panelView = null
-        panelParams = null
-        panelBinding = null
+        waveView = null
+        waveParams = null
+        waveBinding = null
     }
 
-    private fun hidePanel() {
-        removePanel()
+    /** 声波框定位：水平居中于悬浮球，垂直方向贴在悬浮球上方（空间不足则放下方） */
+    private fun positionWaveBar() {
+        val p = waveParams ?: return
+        val bp = bubbleParams ?: return
+        val waveW = screenWidth - dp(24)
+        val waveH = dp(72)
+        val gap = dp(10)
+        val bubbleW = dp(56)
+        p.x = (bp.x + bubbleW / 2 - waveW / 2).coerceIn(dp(12), screenWidth - waveW - dp(12))
+        p.y = if (bp.y > waveH + gap + dp(24)) {
+            bp.y - waveH - gap // 悬浮球靠下 → 框在上方
+        } else {
+            (bp.y + bubbleW + gap).coerceAtMost(screenHeight - waveH - dp(24)) // 框在下方
+        }
+        updateWaveBar()
     }
 
-    private inner class PanelTouchListener : View.OnTouchListener {
+    private fun updateWaveBar() {
+        val v = waveView ?: return
+        val p = waveParams ?: return
+        try {
+            windowManager.updateViewLayout(v, p)
+        } catch (_: Exception) {
+        }
+    }
+
+    /** 声波框支持拖动（按住条身非按钮区域移动） */
+    private inner class WaveBarTouchListener : View.OnTouchListener {
         private var initialX = 0
         private var initialY = 0
         private var touchX = 0f
@@ -349,12 +371,12 @@ class FloatingBubbleService : Service() {
         override fun onTouch(v: View, event: MotionEvent): Boolean {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    initialX = panelParams?.x ?: 0
-                    initialY = panelParams?.y ?: 0
+                    initialX = waveParams?.x ?: 0
+                    initialY = waveParams?.y ?: 0
                     touchX = event.rawX
                     touchY = event.rawY
                     dragging = false
-                    return true
+                    return false // 不拦截，保留停止按钮点击
                 }
 
                 MotionEvent.ACTION_MOVE -> {
@@ -362,35 +384,54 @@ class FloatingBubbleService : Service() {
                     val dy = (event.rawY - touchY).toInt()
                     if (!dragging && (abs(dx) > slop || abs(dy) > slop)) dragging = true
                     if (dragging) {
-                        panelParams?.x = initialX + dx
-                        panelParams?.y = initialY + dy
-                        updatePanel()
+                        waveParams?.x = initialX + dx
+                        waveParams?.y = initialY + dy
+                        updateWaveBar()
                     }
-                    return true
+                    return false
                 }
 
-                else -> return true
+                else -> return false
             }
         }
     }
 
-    private fun updatePanel() {
-        val v = panelView ?: return
-        val p = panelParams ?: return
-        try {
-            windowManager.updateViewLayout(v, p)
-        } catch (_: Exception) {
+    /** 空闲呼吸：未识别时波形条缓慢起伏，提示框处于活动状态 */
+    private fun startWaveIdle() {
+        stopWaveIdle()
+        val bars = waveBars() ?: return
+        bars.forEach { it.pivotY = it.height.toFloat().coerceAtLeast(1f) }
+        waveIdleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 900
+            repeatCount = ValueAnimator.INFINITE
+            addUpdateListener { anim ->
+                val t = anim.animatedFraction * 2 * Math.PI
+                bars.forEachIndexed { i, bar ->
+                    val s = 0.35f + 0.25f * sin(t + i * 0.9).toFloat()
+                    bar.scaleY = s
+                }
+            }
+            start()
         }
+    }
+
+    private fun stopWaveIdle() {
+        waveIdleAnimator?.cancel()
+        waveIdleAnimator = null
+        waveBars()?.forEach { it.scaleY = 1f }
+    }
+
+    private fun waveBars(): List<View>? {
+        val b = waveBinding ?: return null
+        return listOf(b.wave1, b.wave2, b.wave3, b.wave4, b.wave5)
     }
 
     // ---------------- 识别流程 ----------------
 
-    /** 直接输入模式（无面板）的流式写入状态 */
+    /** 直接输入模式的流式写入状态（识别文字实时写入焦点输入框） */
     private var streamWriter: TextInsertionAccessibilityService.StreamTextWriter? = null
     private var lastInterim: String = ""
     private var committedFinals: Int = 0
-
-    private val directInputMode: Boolean get() = !settings.showPanel
 
     private fun resetDirectState() {
         streamWriter?.stop()
@@ -412,43 +453,69 @@ class FloatingBubbleService : Service() {
             toast(getString(R.string.hint_need_api_key))
             return
         }
-        pendingText = ""
 
         val controller = AsrController(scope, settings.toAsrConfig())
         asrController = controller
         stateCollectJob = scope.launch {
-            controller.state.collect { s ->
-                if (directInputMode) handleDirectState(s) else renderPanel(s)
-            }
+            controller.state.collect { s -> renderWaveBar(s) }
         }
 
-        if (directInputMode) {
-            // 直接输入模式：先锁定当前焦点输入框，识别文字将实时写入其中，无聆听窗口
-            val writer = TextInsertionAccessibilityService.createStreamWriter(this)
-            if (writer == null || !writer.start()) {
-                controller.cancel()
-                asrController = null
-                stateCollectJob?.cancel()
-                stateCollectJob = null
-                toast(getString(R.string.direct_need_input))
-                return
-            }
-            streamWriter = writer
-            controller.start()
-            toast(getString(R.string.direct_listening))
-        } else {
-            addPanel()
-            controller.start()
+        // 先锁定当前焦点输入框，识别文字将实时写入其中
+        val writer = TextInsertionAccessibilityService.createStreamWriter(this)
+        if (writer == null || !writer.start()) {
+            controller.cancel()
+            asrController = null
+            stateCollectJob?.cancel()
+            stateCollectJob = null
+            toast(getString(R.string.direct_need_input))
+            return
         }
+        streamWriter = writer
+        addWaveBar()
+        controller.start()
         startPulse()
         updateNotification(getString(R.string.notification_listening))
     }
 
-    /** 直接输入模式：把增量/确认文本实时写入焦点输入框 */
-    private fun handleDirectState(s: AsrState) {
-        val writer = streamWriter
+    /** 声波框渲染 + 直接输入（流式写入当前焦点输入框） */
+    private fun renderWaveBar(s: AsrState) {
+        val b = waveBinding
+        // 声波框：波形与文字
+        if (b != null) {
+            when (s.status) {
+                AsrStatus.CONNECTING -> {
+                    b.tvWaveText.text = getString(R.string.wave_connecting)
+                }
+
+                AsrStatus.LISTENING -> {
+                    stopWaveIdle()
+                    b.tvWaveText.text =
+                        s.interim.ifBlank { getString(R.string.wave_listening) }
+                    val level = (s.audioLevel / 12000f).coerceIn(0f, 1f)
+                    val t = SystemClock.elapsedRealtime() * 0.012f
+                    waveBars()?.forEachIndexed { i, bar ->
+                        bar.pivotY = bar.height.toFloat().coerceAtLeast(1f)
+                        val wobble = 0.6f + 0.4f * sin(t + i * 0.9f)
+                        bar.scaleY = (0.15f + level * 0.85f * wobble).coerceIn(0.12f, 1f)
+                    }
+                }
+
+                AsrStatus.FINALIZING -> {
+                    b.tvWaveText.text = getString(R.string.wave_finalizing)
+                }
+
+                AsrStatus.ERROR -> {
+                    b.tvWaveText.text = s.errorMessage ?: getString(R.string.wave_error)
+                }
+
+                AsrStatus.IDLE -> Unit
+            }
+        }
+
+        // 直接输入：把增量/确认文本实时写入焦点输入框。
         // IDLE 为 completeStop 重置态：此时 stop 回调尚未取消 collect（竞态），
         // 绝不能因空 interim 触发清理而删掉输入框内已识别的文字
+        val writer = streamWriter
         if (writer != null && s.status != AsrStatus.IDLE) {
             while (committedFinals < s.finals.size) {
                 writer.commitFinal(s.finals[committedFinals])
@@ -467,8 +534,9 @@ class FloatingBubbleService : Service() {
             stateCollectJob?.cancel()
             stateCollectJob = null
             stopPulse()
+            removeWaveBar()
             updateNotification(getString(R.string.notification_idle))
-            toast(s.errorMessage ?: getString(R.string.panel_error))
+            toast(s.errorMessage ?: getString(R.string.wave_error))
         }
     }
 
@@ -480,55 +548,13 @@ class FloatingBubbleService : Service() {
             stateCollectJob?.cancel()
             stateCollectJob = null
             resetDirectState()
-            when {
-                // 直接输入模式：文本已在识别过程中实时写入输入框，无需额外操作
-                directInputMode -> {
-                    toast(
-                        if (text.isNotBlank()) getString(R.string.direct_inserted)
-                        else getString(R.string.direct_empty)
-                    )
-                    updateNotification(getString(R.string.notification_idle))
-                }
-
-                text.isBlank() -> {
-                    hidePanel()
-                    updateNotification(getString(R.string.notification_idle))
-                }
-
-                settings.autoInsert -> insertAndHide(text)
-
-                else -> panelBinding?.let { b ->
-                    b.tvStatus.text = getString(R.string.panel_stopped)
-                    b.tvInterim.text = ""
-                    b.tvFinal.text = text
-                    b.btnInsert.isEnabled = true
-                    b.levelBar.progress = 0
-                    updateNotification(getString(R.string.notification_idle))
-                }
-            }
+            removeWaveBar()
+            updateNotification(getString(R.string.notification_idle))
+            toast(
+                if (text.isNotBlank()) getString(R.string.direct_inserted)
+                else getString(R.string.direct_empty)
+            )
         }
-    }
-
-    private fun onInsertClick() {
-        val text = pendingText.ifBlank {
-            panelBinding?.tvFinal?.text?.toString() ?: ""
-        }
-        if (text.isBlank()) {
-            hidePanel()
-            return
-        }
-        insertAndHide(text)
-    }
-
-    private fun insertAndHide(text: String) {
-        val inserted = TextInsertionAccessibilityService.insert(this, text)
-        if (!inserted) {
-            TextInsertionAccessibilityService.copyToClipboard(this, text)
-            toast(getString(R.string.copied_to_clipboard))
-        }
-        pendingText = ""
-        hidePanel()
-        updateNotification(getString(R.string.notification_idle))
     }
 
     private fun cancelRecognition() {
@@ -538,46 +564,8 @@ class FloatingBubbleService : Service() {
         asrController?.cancel()
         asrController = null
         resetDirectState()
-        pendingText = ""
-        hidePanel()
+        removeWaveBar()
         updateNotification(getString(R.string.notification_idle))
-    }
-
-    private fun renderPanel(s: AsrState) {
-        val b = panelBinding ?: return
-        when (s.status) {
-            AsrStatus.CONNECTING -> {
-                b.tvStatus.text = getString(R.string.panel_connecting)
-                b.tvError.visibility = View.GONE
-                b.btnRetry.visibility = View.GONE
-                b.btnInsert.isEnabled = false
-            }
-
-            AsrStatus.LISTENING -> {
-                b.tvStatus.text = getString(R.string.panel_listening)
-                b.tvInterim.text = s.interim
-                b.tvFinal.text = s.recognizedText
-                b.btnInsert.isEnabled = true
-                b.levelBar.progress =
-                    (s.audioLevel / 12000f * 100).toInt().coerceIn(0, 100)
-            }
-
-            AsrStatus.FINALIZING -> {
-                b.tvStatus.text = getString(R.string.panel_finalizing)
-                b.btnInsert.isEnabled = false
-            }
-
-            AsrStatus.ERROR -> {
-                b.tvStatus.text = getString(R.string.panel_error)
-                b.tvError.text = s.errorMessage ?: ""
-                b.tvError.visibility = View.VISIBLE
-                b.btnRetry.visibility = View.VISIBLE
-                b.btnInsert.isEnabled = false
-                b.levelBar.progress = 0
-            }
-
-            AsrStatus.IDLE -> Unit
-        }
     }
 
     // ---------------- 通知 ----------------
@@ -650,10 +638,10 @@ class FloatingBubbleService : Service() {
         v.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             if (isBrand) {
-                // 默认品牌色：黄橙渐变（与图标一致的品牌视觉）
+                // 默认品牌色：黑色渐变（与图标一致的品牌视觉）
                 colors = intArrayOf(
-                    Color.argb(alpha, 0xFF, 0xC3, 0x00),
-                    Color.argb(alpha, 0xFF, 0x8D, 0x1A)
+                    Color.argb(alpha, 0x2E, 0x32, 0x38),
+                    Color.argb(alpha, 0x0B, 0x0D, 0x10)
                 )
                 orientation = GradientDrawable.Orientation.TL_BR
             } else {
@@ -670,15 +658,15 @@ class FloatingBubbleService : Service() {
         }
     }
 
-    /** 应用识别面板背景透明度 */
-    private fun applyPanelStyle() {
-        val v = panelView ?: return
-        val alpha = (settings.panelAlpha * 255).toInt().coerceIn(0, 255)
+    /** 应用声波框背景透明度 */
+    private fun applyWaveBarStyle() {
+        val v = waveView ?: return
+        val alpha = (settings.bubbleAlpha * 255).toInt().coerceIn(0, 255)
         v.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(16).toFloat()
-            setColor(Color.argb(alpha, 0x1F, 0x24, 0x30))
-            setStroke(dp(1), 0x40FFC300)
+            cornerRadius = dp(36).toFloat()
+            setColor(Color.argb(alpha, 0x10, 0x13, 0x18))
+            setStroke(dp(1), 0x33FFFFFF)
         }
     }
 

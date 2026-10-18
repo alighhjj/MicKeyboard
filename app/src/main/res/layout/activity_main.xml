@@ -399,69 +399,6 @@
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- 自动填入 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="?android:attr/selectableItemBackground"
-            android:gravity="center_vertical"
-            android:minHeight="52dp"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_icon_tile"
-                android:padding="8dp"
-                android:src="@drawable/ic_set_mic" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_weight="1"
-                android:text="@string/auto_insert_label"
-                android:textColor="?android:attr/textColorPrimary"
-                android:textSize="15sp" />
-
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/sw_auto_insert"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-
-        <!-- 聆听面板 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?android:attr/selectableItemBackground"
-            android:gravity="center_vertical"
-            android:minHeight="52dp"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_icon_tile"
-                android:padding="8dp"
-                android:src="@drawable/ic_set_wave" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_weight="1"
-                android:text="@string/setting_show_panel"
-                android:textColor="?android:attr/textColorPrimary"
-                android:textSize="15sp" />
-
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/sw_show_panel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-
         <!-- ==================== 悬浮窗外观 ==================== -->
         <TextView
             android:layout_width="match_parent"
@@ -536,43 +473,6 @@
 
                 <SeekBar
                     android:id="@+id/seek_bubble_alpha"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:max="100" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- 面板透明度 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_icon_tile"
-                android:padding="8dp"
-                android:src="@drawable/ic_set_wave" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/panel_alpha_label"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:textSize="15sp" />
-
-                <SeekBar
-                    android:id="@+id/seek_panel_alpha"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:max="100" />
